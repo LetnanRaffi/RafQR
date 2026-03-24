@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TempShare — Download File</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { inter: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: {
+              50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc',
+              400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
+              800: '#3730a3', 900: '#312e81',
+            },
+            surface: {
+              900: '#0a0a1a', 800: '#111127', 700: '#1a1a3e', 600: '#252555',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; }
+
+    .bg-mesh {
+      background:
+        radial-gradient(ellipse at 30% 30%, rgba(99,102,241,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 70%, rgba(139,92,246,0.12) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(59,130,246,0.08) 0%, transparent 50%),
+        #0a0a1a;
+    }
+
+    .glass {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    /* Download button pulse */
+    .dl-btn {
+      position: relative;
+      overflow: hidden;
+    }
+    .dl-btn::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(99,102,241,0.4), rgba(139,92,246,0.4), rgba(99,102,241,0.4));
+      z-index: -1;
+      animation: glow-pulse 3s ease-in-out infinite;
+    }
+    @keyframes glow-pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.01); }
+    }
+
+    /* File icon animation */
+    .file-icon-float {
+      animation: iconFloat 3s ease-in-out infinite;
+    }
+    @keyframes iconFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    /* Particle dots */
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: float linear infinite;
+      opacity: 0;
+    }
+    @keyframes float {
+      0% { transform: translateY(0) scale(0); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(-100vh) scale(1); opacity: 0; }
+    }
+
+    /* Success checkmark animation */
+    .check-circle {
+      animation: checkPop 0.5s cubic-bezier(0.4,0,0.2,1);
+    }
+    @keyframes checkPop {
+      0% { transform: scale(0); opacity: 0; }
+      60% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Progress ring */
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.35s;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    /* Fade in up */
+    .fade-in-up {
+      animation: fadeInUp 0.6s cubic-bezier(0.4,0,0.2,1);
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Stagger children */
+    .stagger > * { animation: fadeInUp 0.5s cubic-bezier(0.4,0,0.2,1) both; }
+    .stagger > *:nth-child(1) { animation-delay: 0.05s; }
+    .stagger > *:nth-child(2) { animation-delay: 0.1s; }
+    .stagger > *:nth-child(3) { animation-delay: 0.15s; }
+    .stagger > *:nth-child(4) { animation-delay: 0.2s; }
+    .stagger > *:nth-child(5) { animation-delay: 0.25s; }
+    .stagger > *:nth-child(6) { animation-delay: 0.3s; }
+  </style>
+</head>
+<body class="bg-mesh min-h-screen font-inter text-white antialiased overflow-x-hidden">
+
+  <!-- Floating particles -->
+  <div id="particles" class="fixed inset-0 pointer-events-none z-0"></div>
+
+  <!-- Header -->
+  <header class="relative z-10 px-5 py-4">
+    <div class="max-w-lg mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="relative">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/25">
+            <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+          </div>
+        </div>
+        <span class="text-lg font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">TempShare</span>
+      </div>
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs text-gray-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        Secure
+      </div>
+    </div>
+  </header>
+
+  <!-- ================================================================== -->
+  <!-- STATE 1: File Available (default shown) -->
+  <!-- ================================================================== -->
+  <main id="stateAvailable" class="relative z-10 px-5 pb-10">
+    <div class="max-w-lg mx-auto stagger">
+
+      <!-- Status Badge -->
+      <div class="flex justify-center mb-6">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-emerald-400 font-medium">File Ready</span>
+        </div>
+      </div>
+
+      <!-- File Card -->
+      <div class="glass rounded-2xl p-6 mb-5">
+        <!-- File Icon -->
+        <div class="flex justify-center mb-5">
+          <div class="relative">
+            <div class="file-icon-float w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-500/15 to-purple-500/15 border border-brand-500/20 flex items-center justify-center">
+              <svg class="w-9 h-9 text-brand-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+              </svg>
+            </div>
+            <!-- Subtle ring -->
+            <div class="absolute -inset-3 rounded-3xl border border-brand-500/10 animate-pulse"></div>
+          </div>
+        </div>
+
+        <!-- File Info -->
+        <div class="text-center mb-6">
+          <h2 id="fileName" class="text-lg font-bold text-white mb-1 truncate px-2">Laporan_Keuangan_Q1_2026.pdf</h2>
+          <div class="flex items-center justify-center gap-3 text-sm text-gray-500">
+            <span id="fileType" class="uppercase font-medium text-brand-400/70">PDF</span>
+            <span class="w-1 h-1 rounded-full bg-gray-600"></span>
+            <span id="fileSize">2.4 MB</span>
+          </div>
+        </div>
+
+        <!-- File Details -->
+        <div class="space-y-3 mb-6">
+          <div class="flex items-center justify-between py-2.5 px-3.5 rounded-xl bg-surface-800/60">
+            <div class="flex items-center gap-2.5 text-sm text-gray-400">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Expires in
+            </div>
+            <span id="expiryTimer" class="text-sm font-semibold text-brand-400">28:42</span>
+          </div>
+          <div class="flex items-center justify-between py-2.5 px-3.5 rounded-xl bg-surface-800/60">
+            <div class="flex items-center gap-2.5 text-sm text-gray-400">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+              </svg>
+              Security
+            </div>
+            <span class="text-sm text-emerald-400 font-medium">Encrypted</span>
+          </div>
+          <div class="flex items-center justify-between py-2.5 px-3.5 rounded-xl bg-surface-800/60">
+            <div class="flex items-center gap-2.5 text-sm text-gray-400">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+              </svg>
+              Downloads
+            </div>
+            <span class="text-sm text-gray-300 font-medium">0 / 1</span>
+          </div>
+        </div>
+
+        <!-- Download Button -->
+        <button id="downloadBtn" onclick="startDownload()" class="dl-btn w-full py-4 rounded-xl bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-bold text-base transition-all duration-300 shadow-xl shadow-brand-600/25 hover:shadow-brand-500/35 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 relative z-10">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+          </svg>
+          Download File
+        </button>
+      </div>
+
+      <!-- Sender info -->
+      <div class="glass rounded-xl px-4 py-3 flex items-center gap-3 mb-5">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center text-xs font-bold text-white">P</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm text-gray-300 font-medium">Shared via TempShare</p>
+          <p class="text-xs text-gray-500">Scanned from QR code</p>
+        </div>
+        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+
+      <!-- Download Progress (hidden by default) -->
+      <div id="downloadProgress" class="hidden glass rounded-2xl p-6 mb-5">
+        <div class="flex flex-col items-center">
+          <!-- Circular Progress -->
+          <div class="relative mb-4">
+            <svg class="w-24 h-24" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(99,102,241,0.1)" stroke-width="6"/>
+              <circle id="progressRing" class="progress-ring-circle" cx="50" cy="50" r="42" fill="none" stroke="url(#gradient)" stroke-width="6" stroke-linecap="round" stroke-dasharray="263.89" stroke-dashoffset="263.89"/>
+              <defs>
+                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#6366f1"/>
+                  <stop offset="100%" stop-color="#a855f7"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <span id="dlPercent" class="text-xl font-bold text-white">0%</span>
+            </div>
+          </div>
+          <p id="dlStatus" class="text-sm text-gray-400 mb-1">Downloading...</p>
+          <p id="dlSpeed" class="text-xs text-gray-500">Calculating speed...</p>
+        </div>
+      </div>
+
+      <!-- Download Complete (hidden by default) -->
+      <div id="downloadComplete" class="hidden glass rounded-2xl p-6 mb-5 text-center">
+        <div class="check-circle mx-auto w-16 h-16 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 flex items-center justify-center mb-4">
+          <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-white mb-1">Download Complete!</h3>
+        <p class="text-sm text-gray-400 mb-4">Your file has been saved successfully.</p>
+        <button onclick="resetDemo()" class="px-6 py-2.5 rounded-xl glass text-sm text-brand-400 font-medium hover:bg-brand-500/10 transition-all">
+          Done
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ================================================================== -->
+  <!-- STATE 2: File Expired (hidden by default, toggle to demo) -->
+  <!-- ================================================================== -->
+  <main id="stateExpired" class="relative z-10 px-5 pb-10 hidden">
+    <div class="max-w-lg mx-auto fade-in-up">
+
+      <div class="glass rounded-2xl p-8 text-center">
+        <!-- Expired Icon -->
+        <div class="mx-auto w-20 h-20 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-5">
+          <svg class="w-10 h-10 text-red-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+          </svg>
+        </div>
+
+        <h2 class="text-xl font-bold text-white mb-2">File Not Found</h2>
+        <p class="text-gray-400 text-sm mb-6 max-w-xs mx-auto leading-relaxed">
+          This file has expired or the link is invalid. Files auto-expire after <span class="text-brand-400 font-semibold">30 minutes</span>.
+        </p>
+
+        <div class="space-y-3">
+          <a href="#" onclick="showAvailable(); return false;" class="block w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition-all shadow-lg shadow-brand-600/20">
+            Request New Link
+          </a>
+          <a href="#" class="block w-full py-3 rounded-xl glass text-gray-400 text-sm font-medium hover:text-white transition-all">
+            Go to TempShare
+          </a>
+        </div>
+      </div>
+
+      <!-- Help Section -->
+      <div class="mt-5 glass rounded-xl p-4">
+        <h4 class="text-sm font-semibold text-gray-300 mb-3">Why did this happen?</h4>
+        <div class="space-y-2.5">
+          <div class="flex items-start gap-2.5">
+            <svg class="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-xs text-gray-500 leading-relaxed">Files are automatically deleted after 30 minutes for your security.</p>
+          </div>
+          <div class="flex items-start gap-2.5">
+            <svg class="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-9.86a4.5 4.5 0 00-6.364 0l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+            </svg>
+            <p class="text-xs text-gray-500 leading-relaxed">Ask the sender to re-upload the file and share a new QR code.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="relative z-10 border-t border-white/5 py-5 px-5">
+    <div class="max-w-lg mx-auto text-center">
+      <p class="text-gray-600 text-xs">© 2026 TempShare · Files auto-expire after 30 minutes</p>
+    </div>
+  </footer>
+
+  <!-- Toggle Demo Button (for development only) -->
+  <div class="fixed bottom-5 right-5 z-50">
+    <button onclick="toggleState()" class="px-3 py-2 rounded-lg bg-surface-700 text-xs text-gray-400 hover:text-white transition-colors border border-white/10">
+      Toggle State
+    </button>
+  </div>
+
+  <script>
+    // === Particles ===
+    function createParticles() {
+      const container = document.getElementById('particles');
+      for (let i = 0; i < 15; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 3 + 1;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.bottom = '-10px';
+        p.style.background = `hsl(${230 + Math.random() * 60}, 70%, ${50 + Math.random() * 20}%)`;
+        p.style.animationDuration = (8 + Math.random() * 15) + 's';
+        p.style.animationDelay = Math.random() * 10 + 's';
+        container.appendChild(p);
+      }
+    }
+    createParticles();
+
+    // === Timer Demo ===
+    let timeLeft = 28 * 60 + 42;
+    function updateTimer() {
+      const m = Math.floor(timeLeft / 60);
+      const s = timeLeft % 60;
+      document.getElementById('expiryTimer').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+      if (timeLeft > 0) {
+        timeLeft--;
+        setTimeout(updateTimer, 1000);
+      }
+    }
+    updateTimer();
+
+    // === Download Demo ===
+    function startDownload() {
+      const btn = document.getElementById('downloadBtn');
+      const progress = document.getElementById('downloadProgress');
+      const ring = document.getElementById('progressRing');
+      const percent = document.getElementById('dlPercent');
+      const status = document.getElementById('dlStatus');
+      const speed = document.getElementById('dlSpeed');
+      const circumference = 2 * Math.PI * 42; // ~263.89
+
+      btn.classList.add('hidden');
+      progress.classList.remove('hidden');
+
+      let prog = 0;
+      const interval = setInterval(() => {
+        prog += Math.random() * 12 + 3;
+        if (prog >= 100) {
+          prog = 100;
+          clearInterval(interval);
+          setTimeout(showComplete, 400);
+        }
+        const offset = circumference - (prog / 100) * circumference;
+        ring.style.strokeDashoffset = offset;
+        percent.textContent = Math.round(prog) + '%';
+        status.textContent = prog < 100 ? 'Downloading...' : 'Complete!';
+        speed.textContent = prog < 100 ? (Math.random() * 5 + 2).toFixed(1) + ' MB/s' : '';
+      }, 200);
+    }
+
+    function showComplete() {
+      document.getElementById('downloadProgress').classList.add('hidden');
+      document.getElementById('downloadComplete').classList.remove('hidden');
+    }
+
+    function resetDemo() {
+      document.getElementById('downloadBtn').classList.remove('hidden');
+      document.getElementById('downloadProgress').classList.add('hidden');
+      document.getElementById('downloadComplete').classList.add('hidden');
+      // Reset ring
+      document.getElementById('progressRing').style.strokeDashoffset = '263.89';
+      document.getElementById('dlPercent').textContent = '0%';
+    }
+
+    // === Toggle Available / Expired ===
+    let isAvailable = true;
+    function toggleState() {
+      isAvailable = !isAvailable;
+      document.getElementById('stateAvailable').classList.toggle('hidden', !isAvailable);
+      document.getElementById('stateExpired').classList.toggle('hidden', isAvailable);
+    }
+
+    function showAvailable() {
+      isAvailable = true;
+      document.getElementById('stateAvailable').classList.remove('hidden');
+      document.getElementById('stateExpired').classList.add('hidden');
+    }
+  </script>
+
+</body>
+</html>
