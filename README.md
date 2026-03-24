@@ -1,4 +1,4 @@
-# TempShare - Quick File Transfer
+# RafQR - Quick File Transfer
 
 Transfer files from PC to Mobile instantly via QR Code. Files are stored temporarily and automatically expire after 30 minutes.
 
@@ -37,7 +37,7 @@ Transfer files from PC to Mobile instantly via QR Code. Files are stored tempora
    ```
 
 3. **Set up environment variables**:
-   
+
    Copy `.env.local.example` to `.env.local` and fill in your credentials:
    ```bash
    cp .env.local.example .env.local
@@ -76,7 +76,7 @@ npm start
 ## Project Structure
 
 ```
-tempshare/
+RafQR/
 ├── app/
 │   ├── api/
 │   │   └── session/
@@ -189,4 +189,4 @@ MIT
 
 ## Author
 
-TempShare - Built with ❤️ using Next.js, Firebase, and Redis
+RafQR - Built with ❤️ using Next.js, Firebase, and Redis

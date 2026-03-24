@@ -5,10 +5,11 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TempShare — Instant File Transfer",
+  title: "RafQR — Instant File Transfer via QR Code",
   description: "Transfer files from PC to Mobile instantly via QR Code. Files auto-expire in 30 minutes.",
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>",
+    icon: "/logo.svg",
+    apple: "/logo.svg",
   },
 };
 

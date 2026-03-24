@@ -1,1 +1,5 @@
+# RafQR - Dependencies
 node_modules/
+
+# RafQR - Uploads
+uploads/
