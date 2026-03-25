@@ -87,7 +87,36 @@ export default function UploadPage() {
   const [uniqueId, setUniqueId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [visitorsToday, setVisitorsToday] = useState(0);
+  const [totalTransfers, setTotalTransfers] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch analytics and track visit on mount
+  useState(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+
+    const fetchAnalytics = async () => {
+      try {
+        // Track visit
+        await fetch('/api/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'visit' }),
+        });
+
+        // Get analytics data
+        const res = await fetch('/api/analytics');
+        const data = await res.json();
+        setVisitorsToday(data.visitorsToday || 0);
+        setTotalTransfers(data.totalTransfers || 0);
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+      }
+    };
+
+    fetchAnalytics();
+  });
 
   // Drag handlers
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -187,6 +216,21 @@ export default function UploadPage() {
 
       setUniqueId(result.uniqueId);
       setUploadComplete(true);
+
+      // Track transfer
+      try {
+        await fetch('/api/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'transfer', fileId: result.uniqueId }),
+        });
+        // Refresh analytics
+        const res = await fetch('/api/analytics');
+        const data = await res.json();
+        setTotalTransfers(data.totalTransfers || 0);
+      } catch (error) {
+        console.error('Failed to track transfer:', error);
+      }
     } catch (err: any) {
       console.error('Upload error:', err);
       setError(err.message || 'Upload failed. Please try again.');
@@ -245,6 +289,24 @@ export default function UploadPage() {
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs text-gray-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             Ready
+          </div>
+          <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-gray-500">
+            <div className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span className="hidden xs:inline">Visitors:</span>
+              <span className="font-semibold text-indigo-400">{visitorsToday}</span>
+            </div>
+            <div className="w-px h-3 bg-gray-700" />
+            <div className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <span className="hidden xs:inline">Transfers:</span>
+              <span className="font-semibold text-emerald-400">{totalTransfers}</span>
+            </div>
           </div>
         </div>
       </header>
