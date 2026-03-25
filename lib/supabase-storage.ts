@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Clean environment variables (remove quotes if present)
+const cleanEnv = (env: string | undefined): string => {
+  return (env || '').replace(/^["']|["']$/g, '').trim();
+};
+
+const supabaseUrl = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const supabaseAnonKey = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -17,6 +22,8 @@ export const uploadFileToSupabase = async (
   const storagePath = `uploads/${timestamp}_${safeFileName}`;
 
   console.log('[Supabase] Starting upload:', storagePath);
+  console.log('[Supabase] URL:', supabaseUrl);
+  console.log('[Supabase] File size:', file.size, 'bytes');
 
   // Use fetch API with progress tracking for better mobile compatibility
   const downloadURL = await new Promise<string>((resolve, reject) => {
@@ -45,6 +52,7 @@ export const uploadFileToSupabase = async (
           errorMsg = resp.message || resp.error || errorMsg;
         } catch {}
         console.error('[Supabase] Upload error:', errorMsg, 'Status:', xhr.status);
+        console.error('[Supabase] Response:', xhr.responseText);
 
         if (xhr.status === 404) {
           reject(new Error(
@@ -56,7 +64,7 @@ export const uploadFileToSupabase = async (
           ));
         } else if (xhr.status === 0) {
           reject(new Error(
-            'Cannot connect to server. Please check:\n1. Your internet connection\n2. NEXT_PUBLIC_SUPABASE_URL is correct\n3. CORS is enabled on Supabase'
+            `Cannot connect to Supabase at ${supabaseUrl}. Please check:\n1. Your internet connection\n2. NEXT_PUBLIC_SUPABASE_URL is correct (should be: https://your-project.supabase.co)\n3. CORS is enabled on Supabase\n4. Try accessing ${supabaseUrl} from your phone browser`
           ));
         } else {
           reject(new Error(errorMsg));
@@ -67,7 +75,7 @@ export const uploadFileToSupabase = async (
     xhr.addEventListener('error', (e) => {
       console.error('[Supabase] XHR error:', e);
       reject(new Error(
-        'Network error during upload. Please check:\n1. Your internet connection is stable\n2. Try switching between WiFi and mobile data\n3. Make sure NEXT_PUBLIC_SUPABASE_URL is correct'
+        `Network error during upload. This usually means:\n1. Supabase Storage bucket doesn't exist or isn't public\n2. CORS policy is blocking the request\n3. Your internet connection is unstable\n\nPlease check Supabase Dashboard → Storage and make sure bucket "tempshare" exists and is public.`
       ));
     });
 
@@ -77,7 +85,7 @@ export const uploadFileToSupabase = async (
 
     xhr.addEventListener('timeout', () => {
       reject(new Error(
-        'Upload timeout. The file might be too large or connection is too slow. Please try again with a smaller file or better connection.'
+        'Upload timeout (60s). The file might be too large or connection is too slow. Please try again with a smaller file or better connection.'
       ));
     });
 
