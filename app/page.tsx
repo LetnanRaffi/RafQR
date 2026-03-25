@@ -225,12 +225,12 @@ export default function UploadPage() {
   return (
     <div className="min-h-screen antialiased">
       {/* Header */}
-      <header className="px-6 py-5">
+      <header className="px-4 sm:px-6 py-4 sm:py-5">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75z" />
                 </svg>
@@ -238,8 +238,8 @@ export default function UploadPage() {
               <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-600/20 animate-pulse-ring" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">RafQR</h1>
-              <p className="text-[11px] text-gray-500 font-medium tracking-widest uppercase">QR · Secure · Temporary</p>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">RafQR</h1>
+              <p className="text-[10px] sm:text-[11px] text-gray-500 font-medium tracking-widest uppercase hidden xs:block">QR · Secure · Temporary</p>
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs text-gray-400">
@@ -250,16 +250,16 @@ export default function UploadPage() {
       </header>
 
       {/* Main */}
-      <main className="px-6 pb-16">
+      <main className="px-4 sm:px-6 pb-12 sm:pb-16">
         <div className="max-w-5xl mx-auto">
 
           {/* Hero */}
-          <div className="text-center mb-10 animate-fade-in-up">
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">
+          <div className="text-center mb-8 sm:mb-10 animate-fade-in-up">
+            <h2 className="text-2xl xs:text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">
               <span className="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">Share Files</span>
               <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent"> Instantly</span>
             </h2>
-            <p className="text-gray-500 text-sm sm:text-base max-w-md mx-auto leading-relaxed">
+            <p className="text-gray-500 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
               Drop your files, scan the QR code, download on any device.
               <br className="hidden sm:block" />
               Auto-expires in <span className="text-indigo-400 font-semibold">30 minutes</span>.
@@ -268,13 +268,13 @@ export default function UploadPage() {
 
           {!uploadComplete ? (
             /* ── UPLOAD STATE ── */
-            <div className="grid lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
               {/* Left side */}
-              <div className="lg:col-span-3 space-y-5">
+              <div className="lg:col-span-3 space-y-4 sm:space-y-5">
 
                 {/* Dropzone */}
                 <div
-                  className={`dropzone rounded-2xl p-8 sm:p-12 text-center cursor-pointer group relative overflow-hidden ${isDragging ? 'drag-over' : ''}`}
+                  className={`dropzone rounded-2xl p-6 sm:p-8 md:p-12 text-center cursor-pointer group relative overflow-hidden ${isDragging ? 'drag-over' : ''}`}
                   onDragEnter={handleDragEnter}
                   onDragLeave={handleDragLeave}
                   onDragOver={handleDragOver}
@@ -282,25 +282,26 @@ export default function UploadPage() {
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 sm:w-64 sm:h-64 bg-indigo-500/5 rounded-full blur-3xl" />
                   </div>
 
                   <div className="relative z-10">
-                    <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+                    <div className="mx-auto w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 transition-transform duration-300">
                       <UploadCloudIcon />
                     </div>
-                    <p className="text-white font-semibold text-base mb-1">
+                    <p className="text-white font-semibold text-sm sm:text-base mb-1">
                       {isDragging ? 'Drop files here!' : 'Drag & drop files here'}
                     </p>
-                    <p className="text-gray-500 text-sm mb-5">or click to browse your files</p>
+                    <p className="text-gray-500 text-xs sm:text-sm mb-4 sm:mb-5">or click to browse your files</p>
                     <button
                       onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-all duration-200 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98]"
+                      className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-all duration-200 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <PlusIcon />
-                      Select Files
+                      <span className="hidden xs:inline">Select Files</span>
+                      <span className="xs:hidden">Browse</span>
                     </button>
-                    <p className="text-gray-600 text-xs mt-4">Max 100 MB per file · Auto-expires in 30 min</p>
+                    <p className="text-gray-600 text-[11px] sm:text-xs mt-3 sm:mt-4">Max 100 MB per file · Auto-expires in 30 min</p>
                   </div>
 
                   <input
@@ -316,26 +317,26 @@ export default function UploadPage() {
                 {selectedFiles.length > 0 && (
                   <div className="animate-fade-in-up">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-gray-300">
+                      <h3 className="text-xs sm:text-sm font-semibold text-gray-300">
                         {selectedFiles.length} file{selectedFiles.length !== 1 && 's'} · {formatSize(totalSize)}
                       </h3>
-                      <button onClick={clearAll} className="text-xs text-gray-500 hover:text-red-400 transition-colors">
+                      <button onClick={clearAll} className="text-[11px] sm:text-xs text-gray-500 hover:text-red-400 transition-colors">
                         Clear all
                       </button>
                     </div>
-                    <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-64 sm:max-h-72 overflow-y-auto pr-1">
                       {selectedFiles.map((file, i) => (
-                        <div key={`${file.name}-${i}`} className="glass rounded-xl px-4 py-3 flex items-center gap-3 group animate-fade-in-up">
-                          <div className={`w-9 h-9 rounded-lg ${getFileColor(file.type)} border flex items-center justify-center flex-shrink-0`}>
+                        <div key={`${file.name}-${i}`} className="glass rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2.5 sm:gap-3 group animate-fade-in-up">
+                          <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg ${getFileColor(file.type)} border flex items-center justify-center flex-shrink-0`}>
                             <FileIcon type={file.type} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white font-medium truncate">{file.name}</p>
-                            <p className="text-xs text-gray-500">{formatSize(file.size)} · {getFileExt(file.name)}</p>
+                            <p className="text-[13px] sm:text-sm text-white font-medium truncate">{file.name}</p>
+                            <p className="text-[11px] sm:text-xs text-gray-500">{formatSize(file.size)} · {getFileExt(file.name)}</p>
                           </div>
                           <button
                             onClick={(e) => { e.stopPropagation(); removeFile(i); }}
-                            className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all p-1"
+                            className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all p-1 min-h-0 h-auto"
                           >
                             <XIcon />
                           </button>
@@ -349,29 +350,29 @@ export default function UploadPage() {
                 {selectedFiles.length > 0 && !isUploading && (
                   <button
                     onClick={handleUpload}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-sm transition-all duration-300 shadow-xl shadow-indigo-600/20 hover:shadow-indigo-500/30 hover:scale-[1.005] active:scale-[0.995] flex items-center justify-center gap-2"
+                    className="w-full py-3 sm:py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-sm transition-all duration-300 shadow-xl shadow-indigo-600/20 hover:shadow-indigo-500/30 hover:scale-[1.005] active:scale-[0.995] flex items-center justify-center gap-2"
                   >
                     <UploadCloudIcon />
-                    Upload {selectedFiles.length} File{selectedFiles.length !== 1 && 's'} & Generate QR
+                    <span>Upload {selectedFiles.length} File{selectedFiles.length !== 1 && 's'} & Generate QR</span>
                   </button>
                 )}
 
                 {/* Progress */}
                 {isUploading && (
-                  <div className="glass rounded-2xl p-5 animate-fade-in-up">
+                  <div className="glass rounded-2xl p-4 sm:p-5 animate-fade-in-up">
                     <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-medium text-gray-300">
+                      <p className="text-xs sm:text-sm font-medium text-gray-300">
                         Uploading file {currentFileIndex + 1} of {selectedFiles.length}...
                       </p>
-                      <span className="text-sm font-bold text-indigo-400">{overallProgress}%</span>
+                      <span className="text-xs sm:text-sm font-bold text-indigo-400">{overallProgress}%</span>
                     </div>
-                    <div className="w-full h-2.5 rounded-full bg-white/5 overflow-hidden">
+                    <div className="w-full h-2 sm:h-2.5 rounded-full bg-white/5 overflow-hidden">
                       <div
                         className="progress-shimmer h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300 ease-out"
                         style={{ width: `${overallProgress}%` }}
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-2 truncate">
+                    <p className="text-[11px] sm:text-xs text-gray-500 mt-2 truncate">
                       {selectedFiles[currentFileIndex]?.name}
                     </p>
                   </div>
@@ -379,9 +380,9 @@ export default function UploadPage() {
 
                 {/* Error */}
                 {error && (
-                  <div className="glass rounded-xl p-4 border-red-500/20 bg-red-500/5 animate-fade-in-up">
-                    <p className="text-red-400 text-sm flex items-center gap-2">
-                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <div className="glass rounded-xl p-3 sm:p-4 border-red-500/20 bg-red-500/5 animate-fade-in-up">
+                    <p className="text-red-400 text-xs sm:text-sm flex items-center gap-2">
+                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                       </svg>
                       {error}
@@ -392,18 +393,18 @@ export default function UploadPage() {
 
               {/* Right side: QR placeholder */}
               <div className="lg:col-span-2">
-                <div className="glass rounded-2xl p-6 text-center sticky top-6">
-                  <div className="py-8">
-                    <div className="mx-auto w-44 h-44 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center mb-5">
-                      <div className="text-center">
-                        <svg className="w-10 h-10 text-gray-700 mx-auto mb-2" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
+                <div className="glass rounded-2xl p-4 sm:p-6 text-center sticky top-4 sm:top-6">
+                  <div className="py-6 sm:py-8">
+                    <div className="mx-auto w-36 h-36 sm:w-44 sm:h-44 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center mb-4 sm:mb-5">
+                      <div className="text-center px-4">
+                        <svg className="w-8 h-8 sm:w-10 sm:h-10 text-gray-700 mx-auto mb-2" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75H16.5v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
                         </svg>
-                        <p className="text-xs text-gray-600">QR code will<br />appear here</p>
+                        <p className="text-[11px] sm:text-xs text-gray-600 leading-tight">QR code will<br />appear here</p>
                       </div>
                     </div>
-                    <p className="text-gray-500 text-sm">Upload files to generate<br />your sharing QR code</p>
+                    <p className="text-gray-500 text-xs sm:text-sm leading-tight">Upload files to generate<br />your sharing QR code</p>
                   </div>
                 </div>
               </div>
@@ -412,31 +413,31 @@ export default function UploadPage() {
           ) : (
 
             /* ── COMPLETE STATE ── */
-            <div className="grid lg:grid-cols-5 gap-6 animate-scale-in">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 animate-scale-in">
               {/* Left: file summary */}
-              <div className="lg:col-span-3 space-y-5">
-                <div className="glass rounded-2xl p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <div className="lg:col-span-3 space-y-4 sm:space-y-5">
+                <div className="glass rounded-2xl p-4 sm:p-6">
+                  <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                      <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-emerald-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-white font-semibold">Upload Complete!</h3>
-                      <p className="text-xs text-gray-500">{selectedFiles.length} file{selectedFiles.length !== 1 && 's'} · {formatSize(totalSize)}</p>
+                      <h3 className="text-sm sm:text-base text-white font-semibold">Upload Complete!</h3>
+                      <p className="text-[11px] sm:text-xs text-gray-500">{selectedFiles.length} file{selectedFiles.length !== 1 && 's'} · {formatSize(totalSize)}</p>
                     </div>
                   </div>
 
-                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-48 sm:max-h-52 overflow-y-auto pr-1">
                     {selectedFiles.map((file, i) => (
-                      <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03]">
-                        <div className={`w-8 h-8 rounded-lg ${getFileColor(file.type)} border flex items-center justify-center flex-shrink-0`}>
+                      <div key={i} className="flex items-center gap-2.5 sm:gap-3 px-2.5 sm:px-3 py-2 rounded-lg sm:rounded-xl bg-white/[0.03]">
+                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${getFileColor(file.type)} border flex items-center justify-center flex-shrink-0`}>
                           <FileIcon type={file.type} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-white truncate">{file.name}</p>
-                          <p className="text-xs text-gray-500">{formatSize(file.size)}</p>
+                          <p className="text-[13px] sm:text-sm text-white truncate">{file.name}</p>
+                          <p className="text-[11px] sm:text-xs text-gray-500">{formatSize(file.size)}</p>
                         </div>
                         <CheckIcon />
                       </div>
@@ -445,11 +446,11 @@ export default function UploadPage() {
                 </div>
 
                 {/* Expiry notice */}
-                <div className="glass rounded-xl p-4 flex items-center gap-3 border-amber-500/10">
-                  <svg className="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <div className="glass rounded-xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 border-amber-500/10">
+                  <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-[13px] sm:text-sm text-gray-400">
                     Files auto-expire in <span className="text-amber-400 font-semibold">30 minutes</span>
                   </p>
                 </div>
@@ -457,7 +458,7 @@ export default function UploadPage() {
                 {/* New transfer */}
                 <button
                   onClick={handleReset}
-                  className="w-full py-3 rounded-xl glass text-sm text-gray-300 font-medium hover:text-white hover:bg-white/[0.06] transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 sm:py-3.5 rounded-xl glass text-xs sm:text-sm text-gray-300 font-medium hover:text-white hover:bg-white/[0.06] transition-all flex items-center justify-center gap-2"
                 >
                   <PlusIcon />
                   New Transfer
@@ -466,32 +467,32 @@ export default function UploadPage() {
 
               {/* Right: QR code */}
               <div className="lg:col-span-2">
-                <div className="glass rounded-2xl p-6 text-center sticky top-6 animate-scale-in">
-                  <div className="inline-block p-4 bg-white rounded-2xl shadow-2xl shadow-indigo-500/10 mb-5">
+                <div className="glass rounded-2xl p-4 sm:p-6 text-center sticky top-4 sm:top-6 animate-scale-in">
+                  <div className="inline-block p-3 sm:p-4 bg-white rounded-2xl shadow-2xl shadow-indigo-500/10 mb-4 sm:mb-5">
                     <QRCodeSVG
                       value={getShareURL()}
-                      size={176}
+                      size={160}
                       level="H"
                       bgColor="#FFFFFF"
                       fgColor="#0a0a1a"
                     />
                   </div>
 
-                  <p className="text-white font-semibold text-sm mb-1">Scan to Download</p>
-                  <p className="text-gray-500 text-xs mb-4">Point your phone camera at the QR code</p>
+                  <p className="text-sm sm:text-base text-white font-semibold mb-1">Scan to Download</p>
+                  <p className="text-gray-500 text-xs sm:text-xs mb-3 sm:mb-4">Point your phone camera at the QR code</p>
 
                   {/* Share link */}
-                  <div className="flex items-center gap-2 bg-white/[0.03] rounded-xl px-3 py-2.5 mb-4">
-                    <svg className="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <div className="flex items-center gap-1.5 sm:gap-2 bg-white/[0.03] rounded-xl px-2.5 sm:px-3 py-2 sm:py-2.5 mb-3 sm:mb-4">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-9.86a4.5 4.5 0 00-6.364 0l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                     </svg>
-                    <span className="text-xs text-gray-400 truncate flex-1">{getShareURL()}</span>
-                    <button onClick={copyLink} className="text-indigo-400 hover:text-indigo-300 transition-colors flex-shrink-0">
+                    <span className="text-[11px] sm:text-xs text-gray-400 truncate flex-1">{getShareURL()}</span>
+                    <button onClick={copyLink} className="text-indigo-400 hover:text-indigo-300 transition-colors flex-shrink-0 min-h-0 h-auto p-1">
                       {copied ? <CheckIcon /> : <CopyIcon />}
                     </button>
                   </div>
 
-                  <p className="text-xs text-gray-600">
+                  <p className="text-[11px] sm:text-xs text-gray-600">
                     {copied ? <span className="text-emerald-400">Link copied!</span> : 'Click to copy share link'}
                   </p>
                 </div>
@@ -500,17 +501,17 @@ export default function UploadPage() {
           )}
 
           {/* Feature cards */}
-          <div className="grid sm:grid-cols-3 gap-4 mt-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-8 sm:mt-12">
             {[
               { icon: <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>, color: 'bg-emerald-500/10', title: 'Secure Transfer', desc: 'Files auto-deleted after 30 minutes. Zero traces.' },
               { icon: <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>, color: 'bg-indigo-500/10', title: 'Lightning Fast', desc: 'Direct upload to cloud. Instant QR code generation.' },
               { icon: <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>, color: 'bg-purple-500/10', title: 'Any Device', desc: 'Scan QR from any phone. Works on all browsers.' },
             ].map((card, i) => (
-              <div key={i} className="glass rounded-xl p-5 group hover:border-indigo-500/20 transition-all duration-300">
-                <div className={`w-9 h-9 rounded-lg ${card.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+              <div key={i} className="glass rounded-xl p-4 sm:p-5 group hover:border-indigo-500/20 transition-all duration-300">
+                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg ${card.color} flex items-center justify-center mb-2.5 sm:mb-3 group-hover:scale-110 transition-transform`}>
                   {card.icon}
                 </div>
-                <h4 className="text-white font-semibold text-sm mb-1">{card.title}</h4>
+                <h4 className="text-sm sm:text-base text-white font-semibold mb-1">{card.title}</h4>
                 <p className="text-gray-500 text-xs leading-relaxed">{card.desc}</p>
               </div>
             ))}
@@ -519,10 +520,10 @@ export default function UploadPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-6 px-6">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-gray-600 text-xs">© 2026 RafQR · Files auto-expire after 30 minutes</p>
-          <p className="text-gray-700 text-xs">Personal Tool by Pasha</p>
+      <footer className="border-t border-white/5 py-4 sm:py-6 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3">
+          <p className="text-gray-600 text-[11px] sm:text-xs">© 2026 RafQR · Files auto-expire after 30 minutes</p>
+          <p className="text-gray-700 text-[11px] sm:text-xs">Personal Tool by Pasha</p>
         </div>
       </footer>
     </div>
