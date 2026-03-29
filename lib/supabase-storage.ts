@@ -12,13 +12,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const BUCKET = 'tempshare';
 
-// Upload file to Supabase Storage with better mobile support
 export const uploadFileToSupabase = async (
-  file: File,
-  onProgress?: (progress: number) => void
+  file: File | Blob,
+  onProgress?: (progress: number) => void,
+  customName?: string
 ): Promise<{ downloadURL: string; storagePath: string }> => {
   const timestamp = Date.now();
-  const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const rawHandle = (file as any);
+  const fileName = customName || rawHandle.name || 'blob';
+  const safeFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
   const storagePath = `uploads/${timestamp}_${safeFileName}`;
 
   console.log('[Supabase] Starting upload:', storagePath);

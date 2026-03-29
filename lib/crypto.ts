@@ -26,7 +26,7 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
   return window.crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: salt,
+      salt: salt.buffer as ArrayBuffer, // Force ArrayBuffer
       iterations: ITERATIONS,
       hash: 'SHA-256',
     },
@@ -50,7 +50,7 @@ export async function encryptData(data: Blob | string, password: string): Promis
     : await data.arrayBuffer();
 
   const encryptedContent = await window.crypto.subtle.encrypt(
-    { name: ALGORITHM, iv },
+    { name: ALGORITHM, iv: iv.buffer as ArrayBuffer },
     key,
     buffer
   );
@@ -62,17 +62,17 @@ export async function encryptData(data: Blob | string, password: string): Promis
  * Decrypt packaged data back to original
  */
 export async function decryptData(blob: Blob, password: string): Promise<Blob | string> {
-  const buffer = await blob.arrayBuffer();
-  // Ensure we are working with Uint8Array safely
-  const salt = new Uint8Array(buffer.slice(0, 16));
-  const iv = new Uint8Array(buffer.slice(16, 28));
-  const encryptedContent = buffer.slice(28);
+  const fullBuffer = await blob.arrayBuffer();
+  // Ensure we are working with plain ArrayBuffers to avoid SharedArrayBuffer lint issues
+  const salt = new Uint8Array(fullBuffer.slice(0, 16));
+  const iv = new Uint8Array(fullBuffer.slice(16, 28));
+  const encryptedContent = fullBuffer.slice(28);
 
   const key = await deriveKey(password, salt);
 
   try {
     const decryptedContent = await window.crypto.subtle.decrypt(
-      { name: ALGORITHM, iv },
+      { name: ALGORITHM, iv: iv.buffer as ArrayBuffer },
       key,
       encryptedContent
     );
