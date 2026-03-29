@@ -24,7 +24,8 @@ export default function QRScannerPage() {
         fps: 10, 
         qrbox: { width: 250, height: 250 },
         rememberLastUsedCamera: true,
-        supportedScanTypes: [0] // Camera only
+        supportedScanTypes: [0], // Camera only
+        videoConstraints: { facingMode: "environment" } // Prefer back camera
       }, 
       /* verbose= */ false
     );
