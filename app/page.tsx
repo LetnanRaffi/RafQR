@@ -204,11 +204,11 @@ export default function UploadPage() {
         {/* HERO BRANDING */}
         <section className="px-6 text-center max-w-5xl mx-auto space-y-10 mb-20">
            <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 text-[9px] font-black tracking-[0.4em] uppercase">
-              <span className="w-1.5 h-1.5 bg-red-600 rounded-full animate-ping" />
-              RafQR Premium v5.5
+              <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+              SYSTEM_READY_BRIDGE_ESTABLISHED
            </div>
            <h2 className="text-7xl sm:text-[10rem] font-black tracking-tighter uppercase leading-[0.75] italic">
-              BRIDGE <br /> YOUR <br /> <span className="text-outline">REALITY</span>
+              BRIDGE <br /> YOUR <br /> <span className="text-outline">DATA</span>
            </h2>
            <p className="text-xs sm:text-base font-black uppercase tracking-[0.2em] opacity-40 max-w-4xl mx-auto leading-relaxed italic">
               Platform transfer ephemeral paling aman untuk tim dan kreator. <br /> Sekali kirim, sekali scan, hancur selamanya.
@@ -363,16 +363,8 @@ export default function UploadPage() {
                       size={qrSize} 
                       level="H" 
                       bgColor="#FFFFFF" 
-                      fgColor="#000000" 
-                      marginSize={0} 
-                      imageSettings={{
-                        src: "/logo.svg",
-                        x: undefined,
-                        y: undefined,
-                        height: qrSize * 0.18,
-                        width: qrSize * 0.18,
-                        excavate: true,
-                      }}
+                      fgColor="#ef4444" 
+                      marginSize={0}
                    />
                  </div>
                  <div className="mt-12 bg-red-600 text-white px-10 py-3 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] ring-1 ring-white/10"><p className="text-xs font-black uppercase tracking-[0.5em] italic">{step === 'waiting' ? 'SCAN TO PUSH DATA' : 'SCAN TO PULL DATA'}</p></div>
@@ -463,8 +455,8 @@ export default function UploadPage() {
       {/* FOOTER */}
       <footer className="footer relative z-10 w-full p-12 py-20 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-10 bg-black">
         <div className="text-left font-black italic">
-           <p className="text-[12px] uppercase tracking-widest text-white/50">RafQR Data Bridge — v5.5 Premium</p>
-           <p className="text-[9px] uppercase tracking-[0.5em] opacity-20 mt-2 italic leading-none">THE MOST POWERFUL EPHEMERAL BRIDGE ON THE WEB.</p>
+           <p className="text-[12px] uppercase tracking-widest text-white/50">RafQR Data Bridge</p>
+           <p className="text-[9px] uppercase tracking-[0.5em] opacity-20 mt-2 italic leading-none">ULTRA-FAST & EPHEMERAL BRIDGE.</p>
         </div>
         <div className="flex gap-16 font-black items-center">
            <p className="text-[10px] uppercase tracking-widest opacity-20 hover:text-red-500 transition-all cursor-pointer" onClick={() => window.location.href = '/admin'}>[ INTERNAL_SYSTEM ]</p>
