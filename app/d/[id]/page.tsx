@@ -96,7 +96,16 @@ export default function DownloadPage() {
 
   const copyText = async () => {
     if (!session?.textContent) return;
-    await navigator.clipboard.writeText(session.textContent);
+    try {
+      await navigator.clipboard.writeText(session.textContent);
+    } catch (err) {
+      const textArea = document.createElement("textarea");
+      textArea.value = session.textContent;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(textArea);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

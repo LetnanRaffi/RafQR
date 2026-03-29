@@ -1,192 +1,96 @@
-# RafQR - Quick File Transfer
+# RafQR — Monochrome v2.2
 
-Transfer files from PC to Mobile instantly via QR Code. Files are stored temporarily and automatically expire after 30 minutes.
+Transfer file dan teks dari PC ke HP secara instan via QR Code. Data disimpan sementara dan otomatis terhapus dalam 30 menit.
 
-## Features
+## Fitur Unggulan
 
-- 🚀 **Fast Transfer**: Direct upload to Firebase Storage (client-side)
-- 📱 **QR Code Download**: Scan and download on mobile instantly
-- ⏱️ **Auto-Expiry**: Files automatically expire after 30 minutes
-- 🔒 **Secure**: No registration required, files are deleted automatically
-- 🎨 **Modern UI**: Beautiful gradient design with Tailwind CSS
+- 🚀 **Transfer Instan**: Unggah langsung ke Supabase Storage (client-side).
+- 📱 **QR Code Download**: Pindai dan akses konten di HP seketika.
+- 🕒 **Auto-Expiry**: Sesi dan file otomatis terhapus dalam 30 menit.
+- 🔒 **Aman & Privat**: Tanpa registrasi, pembersihan otomatis oleh sistem.
+- 🎨 **Premium Monochrome UI**: Desain minimalis brutalist yang bersih dan modern.
+- 📁 **Multi-File & Text**: Kirim banyak file sekaligus atau catatan teks panjang.
 
 ## Tech Stack
 
 - **Framework**: Next.js 15 (App Router)
 - **Styling**: Tailwind CSS
-- **Storage**: Firebase Storage
-- **Database**: Upstash Redis (for session management)
+- **Storage**: Supabase Storage
+- **Database**: Upstash Redis (Session & TTL management)
 - **QR Code**: qrcode.react
-- **ID Generation**: nanoid
+- **Icon**: Lucide-inspired SVG / Custom Logo
 
-## Getting Started
+## Persiapan Mandiri (Self-Hosting)
 
-### Prerequisites
+### Prasyarat
 
-- Node.js 18+ and npm
-- Firebase project with Storage enabled
-- Upstash Redis account
+- Node.js 18+ dan npm
+- Akun [Supabase](https://supabase.com/) (untuk Storage)
+- Akun [Upstash](https://upstash.com/) (untuk Redis)
 
-### Installation
+### Instalasi
 
-1. **Clone the repository** (or use existing files)
+1. **Clone repository**:
+   ```bash
+   git clone https://github.com/LetnanRaffi/RafQR.git
+   cd RafQR
+   ```
 
 2. **Install dependencies**:
    ```bash
    npm install
    ```
 
-3. **Set up environment variables**:
+3. **Konfigurasi Environment Variables**:
+   Buat file `.env.local` dan isi dengan kredensial berikut:
+   ```env
+   # Supabase (Client-side)
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
-   Copy `.env.local.example` to `.env.local` and fill in your credentials:
-   ```bash
-   cp .env.local.example .env.local
+   # Upstash Redis
+   UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
+   UPSTASH_REDIS_REST_TOKEN=your-token
+
+   # App URL (Optional for production)
+   NEXT_PUBLIC_APP_URL=https://your-domain.com
    ```
 
-4. **Configure Firebase**:
-   - Go to [Firebase Console](https://console.firebase.google.com/)
-   - Create a new project or use existing one
-   - Enable Firebase Storage
-   - Get your Firebase config from Project Settings
-   - Fill in the Firebase environment variables
+### Konfigurasi Database & Storage
 
-5. **Configure Upstash Redis**:
-   - Go to [Upstash](https://upstash.com/)
-   - Create a new Redis database
-   - Copy the REST URL and Token
-   - Fill in the Upstash environment variables
+1. **Supabase Storage**:
+   - Buat Bucket baru bernama `tempshare`.
+   - Set bucket menjadi **Public**.
+   - Tambahkan Policy di Tab **Policies**:
+     - Cari `"Public Access"` untuk operasi `INSERT` agar user bisa mengunggah file.
+     - Tambahkan label `public` pada target role.
 
-### Development
+2. **Upstash Redis**:
+   - Buat database Redis baru.
+   - Salin URL dan Token REST.
 
-Run the development server:
+## Pengembangan
+
+Jalankan server pengembangan:
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Buka [http://localhost:3000](http://localhost:3000) di browser Anda.
 
-### Production Build
+## Troubleshooting Mobile
 
-```bash
-npm run build
-npm start
-```
+Jika Anda mengalami masalah "Network Error" saat unggah dari HP:
+1. Pastikan **CORS** di Supabase sudah diset ke `*` atau domain Anda.
+2. Pastikan bucket `tempshare` sudah bertanda **Public**.
+3. Cek panduan lengkap di [MOBILE-UPLOAD-TROUBLESHOOTING.md](./MOBILE-UPLOAD-TROUBLESHOOTING.md).
 
-## Project Structure
-
-```
-RafQR/
-├── app/
-│   ├── api/
-│   │   └── session/
-│   │       └── route.ts      # API for session management
-│   ├── d/
-│   │   └── [id]/
-│   │       └── page.tsx      # Download page (mobile view)
-│   ├── globals.css           # Global styles
-│   ├── layout.tsx            # Root layout
-│   └── page.tsx              # Upload page (PC view)
-├── lib/
-│   ├── firebase.ts           # Firebase configuration & utilities
-│   └── redis.ts              # Redis configuration & utilities
-├── components/               # Reusable components (optional)
-├── .env.local.example        # Environment variables template
-└── package.json
-```
-
-## How It Works
-
-### Upload Flow (PC)
-1. User drags & drops or selects a file
-2. File is uploaded directly to Firebase Storage (client-side)
-3. Progress bar shows real-time upload status
-4. After upload, a session is created in Redis with 30min TTL
-5. QR code is generated with the download URL
-
-### Download Flow (Mobile)
-1. User scans QR code and opens the download page
-2. Page fetches file info from Redis session
-3. User clicks download button
-4. File is downloaded from Firebase Storage
-5. Session TTL is extended on each access
-
-## API Endpoints
-
-### `POST /api/session`
-Create a new file session.
-
-**Request Body**:
-```json
-{
-  "fileName": "example.pdf",
-  "fileSize": 1024000,
-  "fileType": "application/pdf",
-  "firebaseUrl": "https://firebasestorage.googleapis.com/...",
-  "storageRef": "uploads/1234567890_example.pdf"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "uniqueId": "abc123xyz",
-  "message": "Session created successfully"
-}
-```
-
-### `GET /api/session?id=uniqueId`
-Get file session data.
-
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "fileName": "example.pdf",
-    "fileSize": 1024000,
-    "fileType": "application/pdf",
-    "firebaseUrl": "https://firebasestorage.googleapis.com/...",
-    "storageRef": "uploads/1234567890_example.pdf",
-    "createdAt": 1711296000
-  }
-}
-```
-
-## Redis Schema
-
-```
-Key: file:{uniqueId}
-Value: {
-  "fileName": "example.pdf",
-  "fileSize": 1024000,
-  "fileType": "application/pdf",
-  "firebaseUrl": "https://...",
-  "storageRef": "uploads/1234567890_example.pdf",
-  "createdAt": 1711296000
-}
-TTL: 1800 seconds (30 minutes)
-```
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase API Key |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Auth Domain |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase Project ID |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase Storage Bucket |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase Messaging Sender ID |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase App ID |
-| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis Token |
-| `NEXT_PUBLIC_APP_URL` | Your app URL (for QR codes) |
-
-## License
+## Lisensi
 
 MIT
 
 ## Author
 
-RafQR - Built with ❤️ using Next.js, Firebase, and Redis
+**RafQR** — Developed by **RaffiTech Solutions**
+Built with ❤️ using Next.js, Supabase, and Redis.

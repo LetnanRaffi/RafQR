@@ -134,7 +134,21 @@ export default function UploadPage() {
   const reset = () => { setStep('choice'); setMode('none'); setSelectedFiles([]); setTextContent(''); setUniqueId(null); setError(null); };
 
   const getShareURL = () => (typeof window !== 'undefined' ? `${window.location.origin}/d/${uniqueId}` : '');
-  const copyLink = async () => { await navigator.clipboard.writeText(getShareURL()); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  const copyLink = async () => {
+    const url = getShareURL();
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch (err) {
+      const textArea = document.createElement("textarea");
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(textArea);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black font-sans flex flex-col">
