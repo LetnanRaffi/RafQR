@@ -159,6 +159,9 @@ export default function UploadPage() {
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch (e) {}
   };
 
+  const getShareURL = () => (typeof window !== 'undefined' ? `${window.location.origin}/d/${uniqueId}` : '');
+  const getReceiveURL = () => (typeof window !== 'undefined' ? `${window.location.origin}/u/${uniqueId}` : '');
+
   return (
     <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black font-sans flex flex-col overflow-x-hidden">
       {/* MONOCHROME OVERLAY */}
