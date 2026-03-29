@@ -161,6 +161,17 @@ export default function UploadPage() {
       if (!res.ok) throw new Error(result.error);
       setUniqueId(result.uniqueId);
       setStep('success');
+      
+      // Track Analytics (Non-blocking)
+      try {
+        uploadedFiles.forEach(f => {
+          fetch('/api/analytics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'transfer', fileId: result.uniqueId, fileSize: f.fileSize, fileName: f.fileName }),
+          });
+        });
+      } catch (err) {}
     } catch (err: any) { setError(err.message || 'Error.'); }
     finally { setIsUploading(false); }
   };

@@ -79,6 +79,18 @@ export default function MobileUploaderPage() {
         body: JSON.stringify({ id, files: uploadedFiles.length > 0 ? uploadedFiles : undefined, textContent: textContent.trim() || undefined }),
       });
       if (!res.ok) throw new Error('Gagal mengirim data ke server.');
+      
+      // Track Analytics
+      try {
+        uploadedFiles.forEach(f => {
+          fetch('/api/analytics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'transfer', fileId: id, fileSize: f.fileSize, fileName: f.fileName }),
+          });
+        });
+      } catch (e) {}
+
       router.push(`/d/${id}`); // Show them what they just sent
     } catch (err: any) { setError(err.message || 'Error.'); }
     finally { setIsUploading(false); }
