@@ -17,7 +17,8 @@ export interface SessionFile {
 
 // Full session with multiple files
 export interface FileSession {
-  files: SessionFile[];
+  files?: SessionFile[];
+  textContent?: string;
   createdAt: number;
   totalSize: number;
   fileCount: number;

@@ -6,31 +6,18 @@ import { nanoid } from 'nanoid';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { files } = body;
+    const { files, textContent } = body;
 
     // Validate
-    if (!files || !Array.isArray(files) || files.length === 0) {
+    if ((!files || !Array.isArray(files) || files.length === 0) && !textContent) {
       return NextResponse.json(
-        { error: 'Missing or empty files array' },
+        { error: 'Mohon unggah file atau masukkan teks' },
         { status: 400 }
       );
     }
 
-    // Validate each file
-    for (const file of files) {
-      if (!file.fileName || !file.fileSize || !file.firebaseUrl || !file.storageRef) {
-        return NextResponse.json(
-          { error: `Missing required fields for file: ${file.fileName || 'unknown'}` },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Generate unique ID
-    const uniqueId = nanoid(10);
-
     // Build session
-    const sessionFiles: SessionFile[] = files.map((f: any) => ({
+    const sessionFiles: SessionFile[] = (files || []).map((f: any) => ({
       fileName: f.fileName,
       fileSize: f.fileSize,
       fileType: f.fileType || 'application/octet-stream',
@@ -38,14 +25,19 @@ export async function POST(request: NextRequest) {
       storageRef: f.storageRef,
     }));
 
-    const totalSize = sessionFiles.reduce((sum, f) => sum + f.fileSize, 0);
+    const totalFileSize = sessionFiles.reduce((sum, f) => sum + f.fileSize, 0);
+    const textSize = textContent ? new Blob([textContent]).size : 0;
 
     const sessionData: FileSession = {
-      files: sessionFiles,
+      files: sessionFiles.length > 0 ? sessionFiles : undefined,
+      textContent: textContent || undefined,
       createdAt: Date.now(),
-      totalSize,
+      totalSize: totalFileSize + textSize,
       fileCount: sessionFiles.length,
     };
+
+    // Generate unique ID
+    const uniqueId = nanoid(10);
 
     // Save to Redis with 30 min TTL
     await createFileSession(uniqueId, sessionData, 1800);
@@ -54,6 +46,7 @@ export async function POST(request: NextRequest) {
       success: true,
       uniqueId,
       fileCount: sessionFiles.length,
+      hasText: !!textContent,
     });
   } catch (error: any) {
     console.error('Error creating session:', error);

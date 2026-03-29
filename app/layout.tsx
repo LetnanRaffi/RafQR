@@ -9,8 +9,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "RafQR — Instant File Transfer via QR Code",
-  description: "Transfer files from PC to Mobile instantly via QR Code. Files auto-expire in 30 minutes.",
+  title: "RafQR — by RaffiTech Solutions",
+  description: "Secure & Instant Transfer by RaffiTech Solutions. Clean, minimal, and premium.",
   icons: {
     icon: "/logo.svg",
     apple: "/logo.svg",
