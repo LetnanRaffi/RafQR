@@ -93,11 +93,10 @@ export async function PATCH(request: NextRequest) {
     sessionData.isDownloaded = true;
     await redis.set(`file:${id}`, sessionData, { keepTtl: true });
 
-    // Handle Ghost Mode: Delete session if broadcast is off
-    if (sessionData.ghost && !sessionData.broadcast) {
-      // Small delay? No, delete now.
+    // Handle Ghost Mode: Delete session instantly after first access
+    if (sessionData.ghost) {
       await deleteFileSession(id);
-      return NextResponse.json({ success: true, message: 'GHOST_MODE: Session deleted.' });
+      return NextResponse.json({ success: true, message: 'GHOST_MODE_ACTIVATED: Session purged.' });
     }
 
     return NextResponse.json({ success: true });
