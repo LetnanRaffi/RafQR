@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { uploadFileToSupabase } from '../lib/supabase-storage';
 import { QRCodeSVG } from 'qrcode.react';
 import { Logo } from '../components/Logo';
+import { nanoid } from 'nanoid';
 
 // ─── Utilities ───────────────────────────────────────────────
 const formatSize = (bytes: number): string => {
@@ -44,8 +45,8 @@ interface UploadedFile {
   storageRef: string;
 }
 
-type Mode = 'none' | 'file' | 'text' | 'both';
-type Step = 'choice' | 'input' | 'success';
+type Mode = 'none' | 'file' | 'text' | 'both' | 'receive';
+type Step = 'choice' | 'input' | 'success' | 'waiting';
 
 // ─── Component ───────────────────────────────────────────────
 export default function UploadPage() {
@@ -82,7 +83,40 @@ export default function UploadPage() {
     return () => Object.values(newPreviews).forEach(url => URL.revokeObjectURL(url));
   }, [selectedFiles]);
 
-  const selectMode = (m: Mode) => {
+  // Polling for Receiver Mode
+  useEffect(() => {
+    if (step !== 'waiting' || !uniqueId) return;
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/session?id=${uniqueId}`);
+        const result = await res.json();
+        // If data is present (and not just placeholder/empty)
+        if (res.ok && result.data && (result.data.files || (result.data.textContent && result.data.textContent !== 'WAITING_FOR_UPLOAD'))) {
+          window.location.href = `/d/${uniqueId}`;
+        }
+      } catch (err) {}
+    }, 3000);
+    
+    return () => clearInterval(pollInterval);
+  }, [step, uniqueId]);
+
+  const selectMode = async (m: Mode) => {
+    if (m === 'receive') {
+      const id = nanoid(10);
+      setUniqueId(id);
+      setStep('waiting');
+      setMode('receive');
+      // Create placeholder in Redis to acknowledge the session exists
+      try {
+        await fetch('/api/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, textContent: 'WAITING_FOR_UPLOAD' }),
+        });
+      } catch (err) {}
+      return;
+    }
     setMode(m);
     setStep('input');
     setError(null);
@@ -134,8 +168,8 @@ export default function UploadPage() {
   const reset = () => { setStep('choice'); setMode('none'); setSelectedFiles([]); setTextContent(''); setUniqueId(null); setError(null); };
 
   const getShareURL = () => (typeof window !== 'undefined' ? `${window.location.origin}/d/${uniqueId}` : '');
-  const copyLink = async () => {
-    const url = getShareURL();
+  const getReceiveURL = () => (typeof window !== 'undefined' ? `${window.location.origin}/u/${uniqueId}` : '');
+  const copyLink = async (url: string) => {
     try {
       await navigator.clipboard.writeText(url);
     } catch (err) {
@@ -176,7 +210,7 @@ export default function UploadPage() {
                 </h2>
                 <div className="h-0.5 w-12 bg-white/20" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                 <button onClick={() => selectMode('file')} className="p-10 border border-white/5 hover:bg-white hover:text-black transition-all group text-left">
                   <div className="mb-8"><UploadCloudIcon /></div>
                   <div className="font-black text-xl uppercase italic mb-2 tracking-tighter">Transfer File</div>
@@ -191,6 +225,11 @@ export default function UploadPage() {
                   <div className="mb-8 flex gap-1"><UploadCloudIcon /><TextIcon /></div>
                   <div className="font-black text-xl uppercase italic mb-2 tracking-tighter">Combined</div>
                   <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">File sekaligus teks.</div>
+                </button>
+                <button onClick={() => selectMode('receive')} className="p-10 border border-white/5 hover:bg-white hover:text-black transition-all group text-left bg-white/5 ring-1 ring-white/10">
+                  <div className="mb-8 flex gap-1 animate-pulse"><svg className="w-6 h-6 rotate-180" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg></div>
+                  <div className="font-black text-xl uppercase italic mb-2 tracking-tighter">Terima File</div>
+                  <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">Scan & Kirim ke PC ini.</div>
                 </button>
               </div>
             </div>
@@ -253,29 +292,57 @@ export default function UploadPage() {
             </div>
           )}
 
-          {/* STEP 2: SUCCESS */}
-          {step === 'success' && (
+          {/* STEP 2: SUCCESS / WAITING (RECEIVE) */}
+          {(step === 'success' || step === 'waiting') && (
             <div className="animate-scale-in grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center py-10">
               <div className="space-y-10">
                 <div>
-                  <h2 className="text-4xl sm:text-6xl font-black uppercase tracking-tighter leading-none mb-4">Content <br /><span className="opacity-20 underline">Secured</span></h2>
-                  <p className="text-[11px] font-black uppercase tracking-widest opacity-40 leading-relaxed max-w-sm">Pindai QR Code di sebelah untuk mengakses data Anda. Berlaku 30 menit dari sekarang.</p>
+                  <h2 className="text-4xl sm:text-6xl font-black uppercase tracking-tighter leading-none mb-4">
+                    {step === 'waiting' ? 'Waiting for' : 'Content'} <br />
+                    <span className="opacity-20 underline">{step === 'waiting' ? 'Upload' : 'Secured'}</span>
+                  </h2>
+                  <p className="text-[11px] font-black uppercase tracking-widest opacity-40 leading-relaxed max-w-sm">
+                    {step === 'waiting' 
+                      ? 'Pindai QR Code di sebelah dengan HP Anda. Pilih file di HP, lalu klik kirim. File akan muncul di PC ini secara otomatis.' 
+                      : 'Pindai QR Code di sebelah untuk mengakses data Anda di perangkat lain. Berlaku 30 menit.'}
+                  </p>
                 </div>
                 <div className="space-y-4">
                   <div className="flex bg-white/5 border border-white/10 p-4 sm:p-6 overflow-hidden">
-                    <span className="text-[10px] opacity-40 flex-1 truncate font-mono">{getShareURL()}</span>
-                    <button onClick={copyLink} className="text-xs font-black uppercase hover:underline ml-6 underline-offset-4">{copied ? 'Copied' : 'Copy Link'}</button>
+                    <span className="text-[10px] opacity-40 flex-1 truncate font-mono">
+                      {step === 'waiting' ? getReceiveURL() : getShareURL()}
+                    </span>
+                    <button onClick={() => copyLink(step === 'waiting' ? getReceiveURL() : getShareURL())} className="text-xs font-black uppercase hover:underline ml-6 underline-offset-4">
+                      {copied ? 'Copied' : 'Copy Link'}
+                    </button>
                   </div>
                 </div>
-                <button onClick={reset} className="w-full py-6 border border-white/10 text-xs font-black uppercase tracking-widest hover:bg-white/5 transition-all">Start New Transfer</button>
+                {step === 'waiting' && (
+                   <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] opacity-40 animate-pulse">
+                     <div className="w-2 h-2 rounded-full bg-white" />
+                     Menunggu Koneksi Pengirim...
+                   </div>
+                )}
+                <button onClick={reset} className="w-full py-6 border border-white/10 text-xs font-black uppercase tracking-widest hover:bg-white/5 transition-all">
+                  Cancel / Start New
+                </button>
               </div>
 
               <div className="flex flex-col items-center lg:items-end">
                 <div className="p-8 sm:p-12 bg-white ring-[16px] ring-white/5">
-                  <QRCodeSVG value={getShareURL()} size={qrSize} level="H" bgColor="#FFFFFF" fgColor="#000000" marginSize={0} />
+                  <QRCodeSVG 
+                    value={step === 'waiting' ? getReceiveURL() : getShareURL()} 
+                    size={qrSize} 
+                    level="H" 
+                    bgColor="#FFFFFF" 
+                    fgColor="#000000" 
+                    marginSize={0} 
+                  />
                 </div>
                 <div className="mt-8 text-center sm:text-right space-y-1">
-                  <div className="text-[10px] font-black uppercase tracking-[0.3em] bg-white text-black px-4 py-1 inline-block">Scan To Access</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.3em] bg-white text-black px-4 py-1 inline-block">
+                    {step === 'waiting' ? 'Scan To Upload' : 'Scan To Access'}
+                  </div>
                   <p className="text-[9px] font-black uppercase tracking-widest opacity-20 mt-4 block">Compatible with any device camera</p>
                 </div>
               </div>
@@ -286,7 +353,7 @@ export default function UploadPage() {
       </main>
 
       <footer className="footer w-full p-8 sm:p-12 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6">
-        <p className="text-[9px] opacity-20 font-black uppercase tracking-widest leading-none">© 2026 / RAFQR / RAFFITECH SOLUTIONS / V2.2</p>
+        <p className="text-[9px] opacity-20 font-black uppercase tracking-widest leading-none">© 2026 / RAFQR / RAFFITECH SOLUTIONS / V2.3</p>
         <div className="flex gap-4">
           <div className="px-3 py-1 ring-1 ring-white/5 text-[8px] font-black uppercase tracking-widest opacity-40">System_OK</div>
         </div>

@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { files, textContent } = body;
+    const { files, textContent, id: existingId } = body;
 
     // Validate
     if ((!files || !Array.isArray(files) || files.length === 0) && !textContent) {
@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
       fileCount: sessionFiles.length,
     };
 
-    // Generate unique ID
-    const uniqueId = nanoid(10);
+    // Use existing ID if provided (from receiver mode) or generate new
+    const uniqueId = existingId || nanoid(10);
 
     // Save to Redis with 30 min TTL
     await createFileSession(uniqueId, sessionData, 1800);
