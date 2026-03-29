@@ -9,14 +9,17 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "RafQR — by RaffiTech Solutions",
-  description: "Secure & Instant Transfer by RaffiTech Solutions. Clean, minimal, and premium v2.3.",
+  title: "RafQR — Data Bridge",
+  description: "Secure, Instant & Ephemeral Data Bridge. No cloud, no track, just bridge.",
+  themeColor: "#000000",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "RafQR",
+  },
   icons: {
-    icon: [
-      { url: '/logo.svg', type: 'image/svg+xml' },
-      { url: '/icon.svg', type: 'image/svg+xml' }
-    ],
-    apple: '/icon.svg',
+    icon: '/logo.svg',
+    apple: '/logo.svg',
   },
 };
 
