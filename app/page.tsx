@@ -137,25 +137,18 @@ export default function UploadPage() {
     const uploadedFiles: UploadedFile[] = [];
     
     try {
-      // Handle Encryption and Upload
       for (let i = 0; i < selectedFiles.length; i++) {
         let finalBlob: Blob = selectedFiles[i];
-        if (e2eeEnabled) {
-          finalBlob = await encryptData(selectedFiles[i], encryptionKey);
-        }
+        if (e2eeEnabled) finalBlob = await encryptData(selectedFiles[i], encryptionKey);
         const { downloadURL, storagePath } = await uploadFileToSupabase(finalBlob, (p) => {
           setOverallProgress(Math.round(((i + p/100) / (selectedFiles.length || 1)) * 100));
-        }, selectedFiles[i].name); // Use original name for path but it stores blob
-
+        }, selectedFiles[i].name);
         uploadedFiles.push({ fileName: selectedFiles[i].name, fileSize: finalBlob.size, fileType: selectedFiles[i].type, firebaseUrl: downloadURL, storageRef: storagePath });
       }
 
       let finalText = textContent.trim();
       if (e2eeEnabled && finalText) {
         const encryptedTextBlob = await encryptData(finalText, encryptionKey);
-        // Special case: we don't support text encryption by string in Redis directly in v3.1 
-        // but for v3.5 we store the encrypted text as a Base64 string OR as a file.
-        // Let's store it as Base64 in textContent.
         const reader = new FileReader();
         finalText = await new Promise((resolve) => {
            reader.onloadend = () => resolve(reader.result as string);
@@ -166,28 +159,15 @@ export default function UploadPage() {
       const res = await fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          files: uploadedFiles.length > 0 ? uploadedFiles : undefined, 
-          textContent: finalText || undefined,
-          ghost: ghostMode,
-          pin: pinMode ? pinCode : undefined,
-          broadcast: broadcast,
-          e2ee: e2eeEnabled // Flag for receiver
-        }),
+        body: JSON.stringify({ files: uploadedFiles.length > 0 ? uploadedFiles : undefined, textContent: finalText || undefined, ghost: ghostMode, pin: pinMode ? pinCode : undefined, broadcast: broadcast, e2ee: e2eeEnabled }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
-      
       setUniqueId(result.uniqueId);
       setStep('success');
-      
       try {
         uploadedFiles.forEach(f => {
-          fetch('/api/analytics', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'transfer', fileId: result.uniqueId, fileSize: f.fileSize, fileName: f.fileName }),
-          });
+          fetch('/api/analytics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'transfer', fileId: result.uniqueId, fileSize: f.fileSize, fileName: f.fileName }), });
         });
       } catch (err) {}
     } catch (err: any) { setError(err.message || 'Error.'); }
@@ -212,7 +192,7 @@ export default function UploadPage() {
             <Logo size={32} />
             <h1 className="text-xl sm:text-2xl font-black tracking-tighter uppercase italic">RafQR</h1>
           </button>
-          <div className="text-[10px] font-black tracking-widest uppercase opacity-20 hidden xs:block">BY RAFFITECH SOLUTIONS</div>
+          <button onClick={() => window.location.href = '/admin'} className="text-[10px] font-black tracking-widest uppercase opacity-20 hover:opacity-100 transition-opacity">ADMIN PANEL</button>
         </div>
       </header>
 
@@ -225,10 +205,10 @@ export default function UploadPage() {
                 <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter uppercase leading-[0.85]">Select <br /> Transfer <br /><span className="opacity-20">Method</span></h2>
                 <button 
                   onClick={() => window.location.href = '/scan'} 
-                  className="w-full sm:w-auto p-8 sm:p-12 bg-white text-black hover:bg-white/90 transition-all flex flex-col items-center justify-center gap-4 group"
+                  className="w-full sm:w-auto p-10 sm:p-16 bg-white text-black hover:bg-white/90 transition-all flex flex-col items-center justify-center gap-4 group ring-8 ring-white/5"
                 >
-                  <div className="mb-0 flex gap-1"><svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5c-.621 0-1.125-.504-1.125-1.125v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.875 12h1.125m-1.125 3h1.125m-1.125 3h1.125M12 12h1.125m-1.125 3h1.125m-1.125 3h1.125M12 15h.008v.008H12V15zm0 3h.008v.008H12V18zm3 0h.008v.008H15V18zm0-3h.008v.008H15V15zm3 0h.008v.008H18V15zm0 3h.008v.008H18V18zm-9-9h.008v.008H9V9zm0 9.75h.008v.008H9v-.008zm-3 0h.008v.008H6v-.008zm0-3h.008v.008H6v-.008zm3 0h.008v.008H9v-.008z" /></svg></div>
-                  <div className="font-black text-2xl uppercase italic tracking-tighter">Fast Scan</div>
+                  <div className="mb-0 flex gap-1"><svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5c-.621 0-1.125-.504-1.125-1.125v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.875 12h1.125m-1.125 3h1.125m-1.125 3h1.125M12 12h1.125m-1.125 3h1.125m-1.125 3h1.125M12 15h.008v.008H12V15zm0 3h.008v.008H12V18zm3 0h.008v.008H15V18zm0-3h.008v.008H15V15zm3 0h.008v.008H18V15zm0 3h.008v.008H18V18zm-9-9h.008v.008H9V9zm0 9.75h.008v.008H9v-.008zm-3 0h.008v.008H6v-.008zm0-3h.008v.008H6v-.008zm3 0h.008v.008H9v-.008z" /></svg></div>
+                  <div className="font-black text-3xl uppercase italic tracking-tighter">Fast Scan</div>
                 </button>
               </div>
 
@@ -239,20 +219,43 @@ export default function UploadPage() {
                 <button onClick={() => selectMode('receive')} className="p-10 border border-white/5 hover:bg-white hover:text-black transition-all group text-left bg-white/5 ring-1 ring-white/10"><div className="mb-8 flex gap-1 animate-pulse"><svg className="w-6 h-6 rotate-180" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg></div><div className="font-black text-xl uppercase italic mb-2 tracking-tighter">Terima File</div><div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">HP ke PC ini.</div></button>
               </div>
 
-              {/* FEATURES EXPLAINER v3.5 */}
-              <div className="mt-20 pt-20 border-t border-white/5 grid grid-cols-1 md:grid-cols-3 gap-12 opacity-40">
-                <div className="space-y-4">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.4em]">v3.5 E2EE ENCRYPT</h4>
-                  <p className="text-[9px] font-black uppercase tracking-widest leading-relaxed">Data Anda diacak secara matematis di browser sebelum diunggah. Bahkan kami sebagai provider tidak bisa melihat isi data Anda.</p>
-                </div>
-                <div className="space-y-4">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.4em]">HYPER SCANNER</h4>
-                  <p className="text-[9px] font-black uppercase tracking-widest leading-relaxed">Scanner baru yang lebih cepat dengan deteksi otomatis kamera belakang. Sekali pindai, langsung redirect ke tujuan.</p>
-                </div>
-                <div className="space-y-4">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.4em]">GHOST PROTOCOL </h4>
-                  <p className="text-[9px] font-black uppercase tracking-widest leading-relaxed">Fitur Self-Destruct yang menghapus seluruh jejak transfer segera setelah scan pertama berhasil dilakukan.</p>
-                </div>
+              {/* COMPREHENSIVE FEATURE OVERVIEW v3.5 */}
+              <div className="mt-32 pt-20 border-t border-white/5">
+                 <h3 className="text-[11px] font-black uppercase tracking-[0.5em] mb-12 opacity-40 italic">Technical Specifications & Features</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-16">
+                    <div className="space-y-4">
+                       <h4 className="text-xs font-black uppercase italic tracking-tighter">01. End-To-End Encrypt</h4>
+                       <p className="text-[10px] font-black uppercase tracking-widest leading-loose opacity-30">Keamanan matematis tingkat tinggi (AES-GCM). Data diacak di browser pengirim dan hanya bisa didekripsi lokal di perangkat penerima.</p>
+                    </div>
+                    <div className="space-y-4">
+                       <h4 className="text-xs font-black uppercase italic tracking-tighter">02. Ghost Protocol</h4>
+                       <p className="text-[10px] font-black uppercase tracking-widest leading-loose opacity-30">Fitur Self-Destruct otomatis. Segera setelah scan pertama dilakukan, seluruh sesi dan file dihapus permanen dari server.</p>
+                    </div>
+                    <div className="space-y-4">
+                       <h4 className="text-xs font-black uppercase italic tracking-tighter">03. Smart Hub Scanner</h4>
+                       <p className="text-[10px] font-black uppercase tracking-widest leading-loose opacity-30">Terintegrasi langsung di web. Menggunakan deteksi kamera belakang otomatis untuk mempercepat proses pairing antar perangkat.</p>
+                    </div>
+                    <div className="space-y-4">
+                       <h4 className="text-xs font-black uppercase italic tracking-tighter">04. Bidirectional Transfer</h4>
+                       <p className="text-[10px] font-black uppercase tracking-widest leading-loose opacity-30">Kirim dari PC ke HP atau dari HP ke PC dengan modal satu scan. Sangat praktis untuk memindahkan aset kerja dengan cepat.</p>
+                    </div>
+                    <div className="space-y-4">
+                       <h4 className="text-xs font-black uppercase italic tracking-tighter">05. Archive Zipping</h4>
+                       <p className="text-[10px] font-black uppercase tracking-widest leading-loose opacity-30">Multi-file otomatis dibundel menjadi satu file ZIP secara real-time di browser sebelum di-download.</p>
+                    </div>
+                    <div className="space-y-4">
+                       <h4 className="text-xs font-black uppercase italic tracking-tighter">06. Live Notifications</h4>
+                       <p className="text-[10px] font-black uppercase tracking-widest leading-loose opacity-30">Dapatkan notifikasi instan di layar PC saat file Anda telah berhasil diakses atau di-download oleh penerima.</p>
+                    </div>
+                    <div className="space-y-4">
+                       <h4 className="text-xs font-black uppercase italic tracking-tighter">07. PIN Guard Access</h4>
+                       <p className="text-[10px] font-black uppercase tracking-widest leading-loose opacity-30">Lapisan keamanan tambahan dengan 4 digit PIN unik yang mencegah sembarang orang membuka link QR Anda.</p>
+                    </div>
+                    <div className="space-y-4">
+                       <h4 className="text-xs font-black uppercase italic tracking-tighter">08. Admin Analytics</h4>
+                       <p className="text-[10px] font-black uppercase tracking-widest leading-loose opacity-30">Dashboard statistik pribadi untuk melihat total data (GB) yang lewat dan tren penggunaan harian.</p>
+                    </div>
+                 </div>
               </div>
             </div>
           )}
@@ -274,34 +277,23 @@ export default function UploadPage() {
                 {(mode === 'text' || mode === 'both') && <textarea value={textContent} onChange={(e) => setTextContent(e.target.value)} placeholder="Type your data here..." className="w-full h-48 sm:h-96 bg-white/[0.01] border border-white/10 p-8 sm:p-12 text-xl sm:text-3xl font-medium focus:outline-none focus:border-white transition-all resize-none placeholder-white/5 font-sans" />}
               </div>
 
-              {/* v3.5 TRANSFER SETTINGS */}
               <div className="p-8 sm:p-12 border border-white/5 bg-white/[0.01] space-y-10">
                  <div className="flex items-center gap-3"><SettingsIcon /><h3 className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">Privacy & Encryption</h3></div>
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                   
                    <button onClick={() => setE2eeEnabled(!e2eeEnabled)} className={`p-6 border text-left transition-all ${e2eeEnabled ? 'bg-white text-black border-white' : 'border-white/10 opacity-40 hover:opacity-100'}`}>
-                     <div className="flex items-center gap-2 mb-1"><LockIcon /><div className="font-black text-[10px] uppercase italic">End-To-End Encrypt</div></div>
+                     <div className="flex items-center gap-2 mb-1"><LockIcon /><div className="font-black text-[10px] uppercase italic">E2EE Encrypt</div></div>
                      {e2eeEnabled && (
-                       <input 
-                         onClick={(e) => e.stopPropagation()} 
-                         value={encryptionKey} 
-                         onChange={(e) => setEncryptionKey(e.target.value)} 
-                         placeholder="Secret Key..." 
-                         className="w-full mt-2 bg-black text-white px-2 py-1 text-[9px] font-black italic focus:outline-none ring-1 ring-black/10" 
-                       />
+                       <input onClick={(e) => e.stopPropagation()} value={encryptionKey} onChange={(e) => setEncryptionKey(e.target.value)} placeholder="Secret Key..." className="w-full mt-2 bg-black text-white px-2 py-1 text-[9px] font-black italic focus:outline-none ring-1 ring-black/10" />
                      )}
                    </button>
-
                    <button onClick={() => setGhostMode(!ghostMode)} className={`p-6 border text-left transition-all ${ghostMode ? 'bg-white/10 text-white border-white/40' : 'border-white/10 opacity-40 hover:opacity-100'}`}>
                      <div className="font-black text-[10px] uppercase italic mb-1">Ghost Mode (1x Scan)</div>
                      <div className="text-[8px] font-black uppercase opacity-50">Hapus otomatis setelah scan.</div>
                    </button>
-
                    <button onClick={() => setBroadcast(!broadcast)} className={`p-6 border text-left transition-all ${broadcast ? 'border-white/40' : 'bg-red-950/20 border-red-900/40 opacity-100'}`}>
                       <div className="font-black text-[10px] uppercase italic mb-1">{broadcast ? 'Broadcast ON' : 'Single User'}</div>
                       <div className="text-[8px] font-black uppercase opacity-50">Izinkan banyak perangkat.</div>
                    </button>
-
                    <div className={`p-6 border transition-all ${pinMode ? 'border-white/40' : 'border-white/10 opacity-40'}`}>
                       <div className="flex justify-between items-center mb-2">
                         <label className="font-black text-[10px] uppercase italic cursor-pointer" onClick={() => setPinMode(!pinMode)}>PIN Lock</label>
@@ -351,7 +343,7 @@ export default function UploadPage() {
       </main>
 
       <footer className="footer w-full p-8 sm:p-12 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6">
-        <p className="text-[9px] opacity-20 font-black uppercase tracking-widest leading-none">© 2026 / RAFQR / RAFFITECH SOLUTIONS / v3.5 E2EE</p>
+        <p className="text-[9px] opacity-20 font-black uppercase tracking-widest leading-none">© 2026 / RAFQR / RAFFITECH SOLUTIONS / v3.5 PREMIUM </p>
       </footer>
     </div>
   );
