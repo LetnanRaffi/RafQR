@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { files, textContent, id: existingId, ghost, pin, broadcast } = body;
+    const { files, textContent, id: existingId, ghost, pin, broadcast, e2ee } = body;
 
     // Validate
     if ((!files || !Array.isArray(files) || files.length === 0) && !textContent) {
@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       ghost: ghost || false,
       pin: pin || undefined,
       broadcast: broadcast || false,
+      e2ee: e2ee || false,
       isDownloaded: false,
     };
 

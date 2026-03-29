@@ -28,6 +28,7 @@ export interface FileSession {
   pin?: string;         // Password protection
   isDownloaded?: boolean; // Tracking for PC notifications
   broadcast?: boolean;  // Allow multiple downloads
+  e2ee?: boolean;       // v3.5 E2EE
 }
 
 // Create a new file session in Redis
