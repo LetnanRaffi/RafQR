@@ -355,10 +355,28 @@ export default function UploadPage() {
                    <button onClick={reset} className="text-[10px] font-black uppercase tracking-[0.4em] opacity-20 hover:opacity-100 transition-opacity underline underline-offset-[14px]">Kill Bridge & Pull New</button>
                 </div>
                 
-                <div className="flex flex-col items-center order-first lg:order-last">
-                   <div className="p-12 bg-white shadow-[30px_30px_0px_0px_rgba(255,255,255,0.03)] border border-white/10 drop-shadow-[0_20px_50px_rgba(255,255,255,0.05)]"><QRCodeSVG value={step === 'waiting' ? getReceiveURL() : getShareURL()} size={qrSize} level="H" bgColor="#FFFFFF" fgColor="#000000" marginSize={0} /></div>
-                   <div className="mt-12 bg-red-600 text-white px-10 py-3 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] ring-1 ring-white/10"><p className="text-xs font-black uppercase tracking-[0.5em] italic">{step === 'waiting' ? 'SCAN TO PUSH DATA' : 'SCAN TO PULL DATA'}</p></div>
-                </div>
+              <div className="flex flex-col items-center order-first lg:order-last">
+                 <div className="p-12 bg-white shadow-[30px_30px_0px_0px_rgba(255,255,255,0.03)] border border-white/10 drop-shadow-[0_20px_50px_rgba(255,255,255,0.05)] relative group">
+                   <div className="absolute inset-0 bg-red-600 opacity-0 group-hover:opacity-5 transition-opacity" />
+                   <QRCodeSVG 
+                      value={step === 'waiting' ? getReceiveURL() : getShareURL()} 
+                      size={qrSize} 
+                      level="H" 
+                      bgColor="#FFFFFF" 
+                      fgColor="#000000" 
+                      marginSize={0} 
+                      imageSettings={{
+                        src: "/logo.svg",
+                        x: undefined,
+                        y: undefined,
+                        height: qrSize * 0.18,
+                        width: qrSize * 0.18,
+                        excavate: true,
+                      }}
+                   />
+                 </div>
+                 <div className="mt-12 bg-red-600 text-white px-10 py-3 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] ring-1 ring-white/10"><p className="text-xs font-black uppercase tracking-[0.5em] italic">{step === 'waiting' ? 'SCAN TO PUSH DATA' : 'SCAN TO PULL DATA'}</p></div>
+              </div>
               </div>
             </div>
           )}
