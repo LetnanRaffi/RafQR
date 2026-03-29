@@ -336,10 +336,6 @@ export default function UploadPage() {
            <p className="text-[10px] font-black uppercase tracking-widest">RafQR Data Bridge</p>
            <p className="text-[8px] font-black uppercase tracking-[0.4em] opacity-20 mt-1">PRODUCT OF RAFFITECH SOLUTIONS / 2026</p>
         </div>
-        <div className="flex gap-16">
-           <p className="text-[9px] font-black uppercase tracking-widest opacity-20 hover:opacity-100 cursor-pointer" onClick={() => window.location.href = '/admin'}>System Admin</p>
-           <p className="text-[9px] font-black uppercase tracking-widest opacity-20 hover:opacity-100 cursor-pointer">Terms & Security</p>
-        </div>
       </footer>
     </div>
   );
