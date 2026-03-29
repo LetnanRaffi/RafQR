@@ -1,10 +1,26 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Logo } from '../../../components/Logo';
 
-// ─── Utilities ───────────────────────────────────────────────
+interface SessionFile {
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  firebaseUrl: string;
+}
+
+interface FileSession {
+  files?: SessionFile[];
+  textContent?: string;
+  createdAt: number;
+  totalSize: number;
+  fileCount: number;
+  pin?: string;
+  ghost?: boolean;
+}
+
 const formatSize = (bytes: number): string => {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -13,265 +29,170 @@ const formatSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
 
-const getFileExt = (name: string): string => {
-  const parts = name.split('.');
-  return parts.length > 1 ? parts.pop()!.toUpperCase() : 'FILE';
-};
+const LockIcon = () => (<svg className="w-12 h-12 opacity-20 mb-6" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>);
 
-// ─── Icons ───────────────────────────────────────────────────
-const DownloadIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-  </svg>
-);
-
-const CopyIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
-);
-
-const TextIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3h9m-9 3h4.5M2.25 5.25v13.5a2.25 2.25 0 002.25 2.25h15a2.25 2.25 0 002.25-2.25V5.25A2.25 2.25 0 0019.5 3h-15a2.25 2.25 0 00-2.25 2.25z" />
-  </svg>
-);
-
-// ─── Types ───────────────────────────────────────────────────
-interface SessionFile {
-  fileName: string;
-  fileSize: number;
-  fileType: string;
-  firebaseUrl: string;
-  storageRef: string;
-}
-
-interface SessionData {
-  files?: SessionFile[];
-  textContent?: string;
-  createdAt: number;
-  totalSize: number;
-  fileCount: number;
-}
-
-// ─── Component ───────────────────────────────────────────────
 export default function DownloadPage() {
-  const params = useParams();
-  const id = params.id as string;
-
+  const { id } = useParams();
+  const [session, setSession] = useState<FileSession | null>(null);
   const [loading, setLoading] = useState(true);
-  const [session, setSession] = useState<SessionData | null>(null);
-  const [ttl, setTtl] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
-  const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null);
-  const [downloadingAll, setDownloadingAll] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [enteredPin, setEnteredPin] = useState('');
+  const [isNotified, setIsNotified] = useState(false);
 
   useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        const res = await fetch(`/api/session?id=${id}`);
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error);
+    fetch(`/api/session?id=${id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Data tidak ditemukan atau sudah kadaluarsa.');
+        return res.json();
+      })
+      .then((result) => {
         setSession(result.data);
-        setTtl(result.ttl || 0);
-      } catch (err: any) {
-        setError(err.message || 'Gagal.');
-      } finally {
+        if (result.data.pin) setIsLocked(true);
         setLoading(false);
-      }
-    };
-    if (id) fetchSession();
+        // If no PIN, notify immediately on view
+        if (!result.data.pin) {
+          notifyPC();
+        }
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, [id]);
 
-  useEffect(() => {
-    if (ttl <= 0) return;
-    const timer = setInterval(() => setTtl(p => p > 1 ? p - 1 : 0), 1000);
-    return () => clearInterval(timer);
-  }, [ttl]);
+  const notifyPC = async () => {
+    if (isNotified) return;
+    try {
+      await fetch(`/api/session?id=${id}`, { method: 'PATCH' });
+      setIsNotified(true);
+    } catch (e) {}
+  };
 
-  const formatTime = (seconds: number): string => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+  const handleUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (enteredPin === session?.pin) {
+      setIsLocked(false);
+      notifyPC();
+    } else {
+      alert('PIN Salah!');
+    }
+  };
+
+  const downloadAll = async () => {
+    if (!session?.files) return;
+    for (const f of session.files) {
+      const link = document.createElement('a');
+      link.href = f.firebaseUrl;
+      link.download = f.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const copyText = async () => {
     if (!session?.textContent) return;
     try {
-      await navigator.clipboard.writeText(session.textContent);
+       await navigator.clipboard.writeText(session.textContent);
     } catch (err) {
-      const textArea = document.createElement("textarea");
-      textArea.value = session.textContent;
-      document.body.appendChild(textArea);
-      textArea.select();
-      try { document.execCommand('copy'); } catch (e) {}
-      document.body.removeChild(textArea);
+       const t = document.createElement("textarea"); t.value = session.textContent; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const downloadFile = useCallback(async (file: SessionFile, index: number) => {
-    setDownloadingIndex(index);
-    try {
-      const response = await fetch(file.firebaseUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = file.fileName;
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch { window.open(file.firebaseUrl, '_blank'); }
-    finally { setDownloadingIndex(null); }
-  }, []);
-
-  const downloadAllFiles = async () => {
-    if (!session?.files) return;
-    setDownloadingAll(true);
-    for (let i = 0; i < session.files.length; i++) {
-      await downloadFile(session.files[i], i);
-      await new Promise(r => setTimeout(r, 600)); // Delay slightly longer for batch on mobile
-    }
-    setDownloadingAll(false);
-  };
-
-  if (loading) return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-6">
-      <div className="w-10 h-10 border border-white/20 border-t-white animate-spin" />
+  if (loading) return <div className="min-h-screen bg-black text-white flex items-center justify-center font-black animate-pulse">MEMUAT SESSION...</div>;
+  if (error) return (
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">
+      <h1 className="text-6xl font-black mb-4">404</h1>
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{error}</p>
+      <button onClick={() => window.location.href = '/'} className="mt-12 text-[10px] font-black uppercase underline underline-offset-8 transition-opacity hover:opacity-100">Back To Home</button>
     </div>
   );
 
-  if (error || !session) return (
-    <div className="min-h-screen bg-black text-white p-6 flex items-center justify-center">
-      <div className="max-w-md w-full border border-white p-10 sm:p-12 text-center animate-fade-in relative">
-        <div className="absolute -top-3 left-8 px-4 bg-black text-[10px] font-black uppercase tracking-widest ring-1 ring-white">Error</div>
-        <h2 className="text-3xl font-black uppercase tracking-tighter mb-4 leading-none">Not Found</h2>
-        <p className="text-xs opacity-50 mb-12 uppercase font-medium">Link kadaluarsa atau URL salah.</p>
-        <a href="/" className="inline-block w-full py-4 border border-white text-white font-black uppercase tracking-widest hover:bg-white/5 transition-all text-sm">Kembali</a>
+  if (isLocked) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0,transparent_100%)]">
+        <form onSubmit={handleUnlock} className="max-w-xs w-full text-center animate-fade-in-up">
+           <div className="flex justify-center"><LockIcon /></div>
+           <h2 className="text-xl font-black uppercase tracking-widest mb-2 italic">Secure Entry</h2>
+           <p className="text-[10px] font-black uppercase tracking-widest opacity-20 mb-10">Masukkan PIN untuk mengakses data.</p>
+           <input 
+              type="password" 
+              value={enteredPin} 
+              onChange={(e) => setEnteredPin(e.target.value)} 
+              placeholder="_ _ _ _" 
+              className="w-full bg-white/5 border border-white/10 p-6 text-center text-4xl font-black tracking-widest focus:outline-none focus:border-white transition-all mb-4"
+              autoFocus
+           />
+           <button type="submit" className="w-full bg-white text-black font-black uppercase py-4 tracking-widest hover:bg-white/90">Verify & Open</button>
+        </form>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black antialiased">
-      <header className="px-6 py-6 border-b border-white/5 sticky top-0 bg-black/80 backdrop-blur z-50">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Logo size={28} />
-            <span className="text-lg font-black tracking-tighter uppercase italic">RafQR</span>
-          </div>
-          {ttl > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 ring-1 ring-white/10 glass text-[9px] sm:text-[10px] font-black uppercase tracking-widest tabular-nums">
-              Expires in {formatTime(ttl)}
-            </div>
-          )}
+    <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black font-sans p-6 sm:p-12">
+      <header className="flex justify-between items-center mb-16 max-w-5xl mx-auto">
+        <div className="flex items-center gap-3">
+          <Logo size={32} />
+          <h1 className="text-xl font-black tracking-tighter uppercase italic">RafQR Data</h1>
         </div>
+        <div className="text-[9px] font-black uppercase tracking-[0.4em] opacity-30 pt-2 border-t border-white/5">Session_Secure_v3.0</div>
       </header>
 
-      <main className="px-6 py-10 sm:py-16">
-        <div className="max-w-4xl mx-auto space-y-16 sm:space-y-24 animate-fade-in-up">
-          
-          <div className="mt-8">
-            <h2 className="text-4xl sm:text-7xl font-black tracking-tighter uppercase leading-[0.9] mb-4">
-              Received <br />
-              <span className="opacity-20">Content</span>
-            </h2>
-            <p className="max-w-xs text-[10px] opacity-40 uppercase font-black tracking-widest leading-relaxed">
-              {session.fileCount || 0} Files shared · {formatSize(session.totalSize)} total
-            </p>
-          </div>
+      <main className="max-w-5xl mx-auto space-y-16 animate-fade-in">
+        <div>
+          <h2 className="text-5xl sm:text-7xl font-black uppercase tracking-tighter leading-[0.85] mb-6">Archive <br /><span className="opacity-20 italic">Retrieved</span></h2>
+          <div className="h-0.5 w-12 bg-white/20" />
+        </div>
 
-          {session.textContent && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TextIcon />
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Shared Text</span>
-                </div>
-                <button onClick={copyText} className="text-[10px] font-black uppercase tracking-widest border border-white/20 px-4 py-2 hover:bg-white hover:text-black transition-all">
-                  {copied ? 'Copied' : 'Copy'}
-                </button>
-              </div>
-              <div className="border border-white/10 p-6 sm:p-12 bg-white/5">
-                <pre className="text-base sm:text-xl font-medium whitespace-pre-wrap leading-relaxed selection:bg-white selection:text-black font-sans">{session.textContent}</pre>
-              </div>
+        {session?.files && session.files.length > 0 && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-end border-b border-white/5 pb-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">Stored Files ({session.files.length})</h3>
+              <button onClick={downloadAll} className="text-[10px] font-black uppercase tracking-widest bg-white text-black px-4 py-2 hover:bg-white/90 transition-all">Download All</button>
             </div>
-          )}
-
-          {session.files && session.files.length > 0 && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <DownloadIcon />
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Shared Files</span>
-                </div>
-                {session.files.length > 1 && (
-                  <button 
-                    onClick={downloadAllFiles} 
-                    disabled={downloadingAll}
-                    className="text-[10px] font-black uppercase tracking-widest bg-white text-black px-4 py-2 hover:bg-white/90 disabled:opacity-50 transition-all"
-                  >
-                    {downloadingAll ? 'Batch Downloading...' : 'Download All'}
-                  </button>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {session.files.map((file, i) => {
-                  const isDownloading = downloadingIndex === i;
-                  const isImage = file.fileType.startsWith('image/');
-                  return (
-                    <div key={i} className="group border border-white/5 bg-white/5 relative overflow-hidden flex flex-col transition-all hover:border-white/10">
-                      {/* Preview */}
-                      <div className="aspect-[16/10] sm:aspect-[4/3] bg-black/40 overflow-hidden relative">
-                        {isImage ? (
-                          <img src={file.firebaseUrl} className="w-full h-full object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 sm:group-hover:scale-105" />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center opacity-10">
-                            <span className="text-3xl font-black">{getFileExt(file.fileName)}</span>
-                          </div>
-                        )}
-                        <div className="absolute top-3 left-3 bg-black/60 px-2 py-1 backdrop-blur ring-1 ring-white/10">
-                          <span className="text-[8px] font-black uppercase tracking-widest">{getFileExt(file.fileName)}</span>
-                        </div>
-                      </div>
-
-                      {/* Info & Action */}
-                      <div className="p-5 sm:p-6 space-y-4 flex-1 flex flex-col justify-between">
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-tight truncate mb-1">{file.fileName}</p>
-                          <p className="text-[10px] opacity-30 uppercase font-bold">{formatSize(file.fileSize)}</p>
-                        </div>
-                        <button 
-                          onClick={() => downloadFile(file, i)}
-                          disabled={isDownloading || downloadingAll}
-                          className={`w-full py-4 border border-white/10 font-black uppercase text-[10px] tracking-widest transition-all ${isDownloading ? 'animate-pulse bg-white/10' : 'hover:bg-white hover:text-black hover:border-white'}`}
-                        >
-                          {isDownloading ? 'Processing...' : 'Download'}
-                        </button>
-                      </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {session.files.map((file, i) => (
+                <div key={i} className="p-6 border border-white/5 bg-white/[0.02] flex flex-col justify-between group">
+                  <div>
+                    <div className="w-full aspect-video mb-6 border border-white/5 overflow-hidden flex items-center justify-center text-[10px] font-black opacity-10 uppercase italic">
+                       {file.fileName.split('.').pop()}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-white/5 pt-16 sm:pt-24 pb-8">
-            <div className="p-6 sm:p-8 border border-white/5 bg-white/[0.01]">
-              <div className="text-[10px] font-black uppercase tracking-widest opacity-20 mb-3">Security</div>
-              <p className="text-[10px] sm:text-[11px] uppercase font-bold leading-relaxed">End-to-end encrypted transfer. Files are deleted permanently from storage after expiry.</p>
-            </div>
-            <div className="p-6 sm:p-8 border border-white/5 bg-white/[0.01]">
-              <div className="text-[10px] font-black uppercase tracking-widest opacity-20 mb-3">Expiry</div>
-              <p className="text-[10px] sm:text-[11px] uppercase font-bold leading-relaxed text-red-500/60">Otomatis terhapus dalam 30 menit. Amankan file Anda segera.</p>
+                    <p className="text-sm font-black uppercase truncate group-hover:text-white transition-colors">{file.fileName}</p>
+                    <p className="text-[10px] font-black uppercase opacity-20 tracking-widest mt-1 italic">{formatSize(file.fileSize)}</p>
+                  </div>
+                  <a href={file.firebaseUrl} download={file.fileName} className="mt-8 text-[9px] font-black uppercase border border-white/10 py-3 text-center tracking-[0.3em] hover:bg-white hover:text-black transition-all">Download File</a>
+                </div>
+              ))}
             </div>
           </div>
+        )}
+
+        {session?.textContent && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-end border-b border-white/5 pb-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">Note Content</h3>
+              <button onClick={copyText} className="text-[10px] font-black uppercase tracking-widest border border-white/10 px-4 py-2 hover:bg-white/5">{copied ? 'Copied' : 'Copy Content'}</button>
+            </div>
+            <div className="p-8 sm:p-12 border border-white/5 bg-white/[0.01] text-lg sm:text-2xl font-medium leading-relaxed font-sans whitespace-pre-wrap">
+              {session.textContent}
+            </div>
+          </div>
+        )}
+
+        <div className="p-8 border border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6">
+           <p className="text-[10px] font-black uppercase tracking-widest opacity-20">Sesi akan otomatis dihapus dalam beberapa saat.</p>
+           <button onClick={() => window.location.href = '/'} className="text-[10px] font-black uppercase tracking-widest hover:underline underline-offset-8">Return To Home</button>
         </div>
       </main>
 
-      <footer className="p-8 text-center text-[9px] opacity-10 uppercase font-black tracking-widest border-t border-white/5">
-        © 2026 / RafQR / RaffiTech Solutions / v2.1
+      <footer className="footer w-full p-8 sm:p-12 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6 mt-20 opacity-20">
+        <p className="text-[9px] font-black uppercase tracking-widest leading-none">© 2026 / RAFQR / RAFFITECH SOLUTIONS</p>
+        <div className="px-3 py-1 ring-1 ring-white/5 text-[8px] font-black uppercase tracking-widest">End_To_End_Safe</div>
       </footer>
     </div>
   );

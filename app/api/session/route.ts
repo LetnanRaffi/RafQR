@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createFileSession, getFileSession, getSessionTTL, deleteFileSession, type FileSession, type SessionFile } from '../../../lib/redis';
+import { createFileSession, getFileSession, getSessionTTL, deleteFileSession, type FileSession, type SessionFile, redis } from '../../../lib/redis';
 import { nanoid } from 'nanoid';
 
 // POST /api/session - Create a new multi-file session
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { files, textContent, id: existingId } = body;
+    const { files, textContent, id: existingId, ghost, pin, broadcast } = body;
 
     // Validate
     if ((!files || !Array.isArray(files) || files.length === 0) && !textContent) {
-      return NextResponse.json(
-        { error: 'Mohon unggah file atau masukkan teks' },
-        { status: 400 }
-      );
+      if (!existingId || textContent !== 'WAITING_FOR_UPLOAD') {
+         return NextResponse.json({ error: 'Mohon unggah file atau masukkan teks' }, { status: 400 });
+      }
     }
 
     // Build session
@@ -34,12 +33,13 @@ export async function POST(request: NextRequest) {
       createdAt: Date.now(),
       totalSize: totalFileSize + textSize,
       fileCount: sessionFiles.length,
+      ghost: ghost || false,
+      pin: pin || undefined,
+      broadcast: broadcast || false,
+      isDownloaded: false,
     };
 
-    // Use existing ID if provided (from receiver mode) or generate new
     const uniqueId = existingId || nanoid(10);
-
-    // Save to Redis with 30 min TTL
     await createFileSession(uniqueId, sessionData, 1800);
 
     return NextResponse.json({
@@ -50,10 +50,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error creating session:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to create session' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || 'Failed' }, { status: 500 });
   }
 }
 
@@ -63,63 +60,56 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id');
 
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Missing session ID' },
-        { status: 400 }
-      );
-    }
+    if (!id) return NextResponse.json({ error: 'Missing session ID' }, { status: 400 });
 
     const sessionData = await getFileSession(id);
+    if (!sessionData) return NextResponse.json({ error: 'Session not found/expired' }, { status: 404 });
 
-    if (!sessionData) {
-      return NextResponse.json(
-        { error: 'Session not found or expired' },
-        { status: 404 }
-      );
-    }
-
-    // Also get remaining TTL
     const ttl = await getSessionTTL(id);
 
     return NextResponse.json({
       success: true,
-      data: sessionData,
+      data: sessionData, // Keep it for now, PIN check happens on client
       ttl,
     });
   } catch (error: any) {
     console.error('Error getting session:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to get session' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }
 
-// DELETE /api/session?id=uniqueId - Delete a file session
-export async function DELETE(request: NextRequest) {
+// PATCH /api/session?id=id - Update download status (for notifications)
+export async function PATCH(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
 
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Missing session ID' },
-        { status: 400 }
-      );
+    const sessionData = await getFileSession(id);
+    if (!sessionData) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+    // Mark as downloaded
+    sessionData.isDownloaded = true;
+    await redis.set(`file:${id}`, sessionData, { keepTtl: true });
+
+    // Handle Ghost Mode: Delete session if broadcast is off
+    if (sessionData.ghost && !sessionData.broadcast) {
+      // Small delay? No, delete now.
+      await deleteFileSession(id);
+      return NextResponse.json({ success: true, message: 'GHOST_MODE: Session deleted.' });
     }
 
-    await deleteFileSession(id);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Session deleted successfully',
-    });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Error deleting session:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to delete session' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
+}
+
+// DELETE ...
+export async function DELETE(request: NextRequest) {
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+    await deleteFileSession(id);
+    return NextResponse.json({ success: true });
 }

@@ -22,6 +22,12 @@ export interface FileSession {
   createdAt: number;
   totalSize: number;
   fileCount: number;
+  
+  // New Features v3.0
+  ghost?: boolean;      // Self-destruct after first scan
+  pin?: string;         // Password protection
+  isDownloaded?: boolean; // Tracking for PC notifications
+  broadcast?: boolean;  // Allow multiple downloads
 }
 
 // Create a new file session in Redis
