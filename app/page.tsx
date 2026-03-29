@@ -221,26 +221,34 @@ export default function UploadPage() {
                 </h2>
                 <div className="h-0.5 w-12 bg-white/20" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 <button onClick={() => selectMode('file')} className="p-10 border border-white/5 hover:bg-white hover:text-black transition-all group text-left">
                   <div className="mb-8"><UploadCloudIcon /></div>
                   <div className="font-black text-xl uppercase italic mb-2 tracking-tighter">Transfer File</div>
-                  <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">Kirim media & dokumen.</div>
+                  <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">Kirim media & dokumen ke HP.</div>
                 </button>
                 <button onClick={() => selectMode('text')} className="p-10 border border-white/5 hover:bg-white hover:text-black transition-all group text-left">
                   <div className="mb-8"><TextIcon /></div>
                   <div className="font-black text-xl uppercase italic mb-2 tracking-tighter">Copy Text</div>
-                  <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">Kirim catatan & link.</div>
+                  <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">Kirim catatan & link ke HP.</div>
                 </button>
                 <button onClick={() => selectMode('both')} className="p-10 border border-white/5 hover:bg-white hover:text-black transition-all group text-left">
                   <div className="mb-8 flex gap-1"><UploadCloudIcon /><TextIcon /></div>
                   <div className="font-black text-xl uppercase italic mb-2 tracking-tighter">Combined</div>
-                  <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">File sekaligus teks.</div>
+                  <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">File sekaligus teks ke HP.</div>
                 </button>
                 <button onClick={() => selectMode('receive')} className="p-10 border border-white/5 hover:bg-white hover:text-black transition-all group text-left bg-white/5 ring-1 ring-white/10">
                   <div className="mb-8 flex gap-1 animate-pulse"><svg className="w-6 h-6 rotate-180" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg></div>
                   <div className="font-black text-xl uppercase italic mb-2 tracking-tighter">Terima File</div>
-                  <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">Scan & Kirim ke PC ini.</div>
+                  <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">Kirim dari HP ke PC ini.</div>
+                </button>
+                <button 
+                  onClick={() => window.location.href = '/scan'} 
+                  className="p-10 border border-white/5 hover:bg-white hover:text-black transition-all group text-left bg-white/[0.01]"
+                >
+                  <div className="mb-8 flex gap-1"><svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5c-.621 0-1.125-.504-1.125-1.125v-4.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.875 12h1.125m-1.125 3h1.125m-1.125 3h1.125M12 12h1.125m-1.125 3h1.125m-1.125 3h1.125M12 15h.008v.008H12V15zm0 3h.008v.008H12V18zm3 0h.008v.008H15V18zm0-3h.008v.008H15V15zm3 0h.008v.008H18V15zm0 3h.008v.008H18V18zm-9-9h.008v.008H9V9zm0 9.75h.008v.008H9v-.008zm-3 0h.008v.008H6v-.008zm0-3h.008v.008H6v-.008zm3 0h.008v.008H9v-.008z" /></svg></div>
+                  <div className="font-black text-xl uppercase italic mb-2 tracking-tighter">Scan QR</div>
+                  <div className="text-[10px] opacity-40 font-bold uppercase tracking-widest">Buka scanner kamera di web.</div>
                 </button>
               </div>
             </div>
