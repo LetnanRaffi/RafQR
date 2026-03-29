@@ -202,12 +202,12 @@ export default function UploadPage() {
       <main className="relative z-10 flex-1 flex flex-col pt-16">
         
         {/* HERO BRANDING */}
-        <section className="px-6 text-center max-w-5xl mx-auto space-y-10 mb-20">
+        <section className="pt-12 px-6 text-center max-w-5xl mx-auto space-y-10 mb-16 sm:mb-20">
            <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/5 border border-white/10 text-[9px] font-black tracking-[0.4em] uppercase">
               <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
               SYSTEM_READY_BRIDGE_ESTABLISHED
            </div>
-           <h2 className="text-7xl sm:text-[10rem] font-black tracking-tighter uppercase leading-[0.75] italic">
+           <h2 className="text-6xl sm:text-[10rem] font-black tracking-tighter uppercase leading-[0.75] italic">
               BRIDGE <br /> YOUR <br /> <span className="text-outline">DATA</span>
            </h2>
            <p className="text-xs sm:text-base font-black uppercase tracking-[0.2em] opacity-40 max-w-4xl mx-auto leading-relaxed italic">
@@ -231,11 +231,11 @@ export default function UploadPage() {
                    <div className="bg-white/5 border border-white/10 p-2 space-y-2 relative overflow-hidden ring-1 ring-white/5">
                       <div className="absolute top-0 right-0 p-4 opacity-10 font-black text-[8px] uppercase tracking-widest italic">Encrypted_Socket_Active</div>
                       <div 
-                        className={`p-16 border-2 border-dashed transition-all cursor-pointer text-center ${isDragging ? 'border-white bg-white/10' : 'border-white/5 hover:border-white/20'}`} 
+                        className={`p-10 sm:p-16 border-2 border-dashed transition-all cursor-pointer text-center ${isDragging ? 'border-white bg-white/10' : 'border-white/5 hover:border-white/20'}`} 
                         onDragOver={(e) => e.preventDefault()} onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)} onDrop={(e) => { e.preventDefault(); setIsDragging(false); setSelectedFiles(p => [...p, ...Array.from(e.dataTransfer.files)]); }} 
                         onClick={() => fileInputRef.current?.click()}
                       >
-                         <h3 className="text-5xl font-black uppercase italic tracking-tighter mb-2">Pilih Aset</h3>
+                         <h3 className="text-4xl sm:text-5xl font-black uppercase italic tracking-tighter mb-2">Pilih Aset</h3>
                          <p className="text-[10px] font-black uppercase opacity-20 tracking-widest leading-loose italic">
                            Tarik Media Di Sini <br /> 
                            <span className="text-red-500 font-black opacity-100">(Limit Sesi 50MB)</span>
@@ -248,26 +248,26 @@ export default function UploadPage() {
                    {/* ADVANCED SETTINGS */}
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* E2EE */}
-                      <div className="p-8 border border-white/10 bg-white/[0.02] flex items-center justify-between group">
+                      <div className="p-6 sm:p-8 border border-white/10 bg-white/[0.02] flex items-center justify-between group">
                          <div><p className="text-[11px] font-black uppercase tracking-widest">Enkripsi Militer</p><p className="text-[8px] font-black uppercase opacity-20 italic">AES-GCM Local Unlock</p></div>
                          <div onClick={() => setE2eeEnabled(!e2eeEnabled)} className={`w-14 h-7 border-2 transition-all p-1 cursor-pointer ${e2eeEnabled ? 'border-white bg-white ring-8 ring-white/5' : 'border-white/20'}`}><div className={`w-4 h-4 transition-all ${e2eeEnabled ? 'bg-black ml-auto' : 'bg-white/20'}`} /></div>
                       </div>
                       {e2eeEnabled && <div className="p-6 border border-white/20 bg-white/5"><input value={encryptionKey} onChange={(e) => setEncryptionKey(e.target.value)} placeholder="Kata Kunci Rahasia..." className="bg-transparent text-[11px] font-black uppercase tracking-widest focus:outline-none w-full italic" /></div>}
 
                       {/* GHOST MODE */}
-                      <div className="p-8 border border-white/10 bg-white/[0.02] flex items-center justify-between group">
+                      <div className="p-6 sm:p-8 border border-white/10 bg-white/[0.02] flex items-center justify-between group">
                          <div><p className="text-[11px] font-black uppercase tracking-widest text-red-500">Ghost Mode</p><p className="text-[8px] font-black uppercase opacity-20 italic">Hancur Setelah Scan</p></div>
                          <div onClick={() => setGhostMode(!ghostMode)} className={`w-14 h-7 border-2 transition-all p-1 cursor-pointer ${ghostMode ? 'border-red-600 bg-red-600' : 'border-white/20'}`}><div className={`w-4 h-4 transition-all ${ghostMode ? 'bg-white ml-auto' : 'bg-white/20'}`} /></div>
                       </div>
 
                       {/* CUSTOM ID */}
-                      <div className="p-8 border border-white/10 bg-white/[0.02] flex flex-col justify-center gap-3">
+                      <div className="p-6 sm:p-8 border border-white/10 bg-white/[0.02] flex flex-col justify-center gap-3">
                          <div className="flex items-center justify-between"><p className="text-[11px] font-black uppercase tracking-widest">Custom Link ID</p><p className="text-[8px] font-black uppercase opacity-10">Opsional</p></div>
                          <input value={customId} onChange={(e) => setCustomId(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase())} placeholder="misal: file-kerja" className="bg-transparent border-b border-white/10 py-1 text-xs font-black uppercase tracking-widest focus:border-white focus:outline-none transition-all placeholder:opacity-20" />
                       </div>
 
                       {/* PIN PROTECTION */}
-                      <div className="p-8 border border-white/10 bg-white/[0.02] flex items-center justify-between group">
+                      <div className="p-6 sm:p-8 border border-white/10 bg-white/[0.02] flex items-center justify-between group">
                          <div><p className="text-[11px] font-black uppercase tracking-widest">Akses PIN</p><p className="text-[8px] font-black uppercase opacity-20 italic">Kunci Sesi 4-Digit</p></div>
                          <div onClick={() => setPinMode(!pinMode)} className={`w-14 h-7 border-2 transition-all p-1 cursor-pointer ${pinMode ? 'border-white bg-white' : 'border-white/20'}`}><div className={`w-4 h-4 transition-all ${pinMode ? 'bg-black ml-auto' : 'bg-white/20'}`} /></div>
                       </div>
@@ -294,7 +294,7 @@ export default function UploadPage() {
                       <p className="text-xs font-black uppercase tracking-[0.4em] opacity-30 leading-loose max-w-2xl mx-auto">PC ini akan bertindak sebagai server sementara untuk menerima aset apa pun dari perangkat lain.</p>
                    </div>
                    
-                   <div className="p-10 border border-white/10 bg-white/[0.02] max-w-sm mx-auto">
+                   <div className="p-6 sm:p-10 border border-white/10 bg-white/[0.02] max-w-sm mx-auto">
                       <p className="text-[10px] font-black uppercase tracking-widest opacity-30 mb-4 text-left">Link ID Kustom (Opsional)</p>
                       <input value={customId} onChange={(e) => setCustomId(e.target.value)} placeholder="misal: terima-laporan" className="w-full bg-black/50 border border-white/10 p-4 text-xs font-black uppercase tracking-widest focus:outline-none focus:border-white mb-6" />
                       <button onClick={handleReceive} disabled={isUploading} className="w-full py-16 border-2 border-dashed border-white/10 hover:border-white/40 hover:bg-white/5 transition-all group flex flex-col items-center justify-center gap-6">
@@ -356,7 +356,7 @@ export default function UploadPage() {
                 </div>
                 
               <div className="flex flex-col items-center order-first lg:order-last">
-                 <div className="p-12 bg-white shadow-[30px_30px_0px_0px_rgba(255,255,255,0.03)] border border-white/10 drop-shadow-[0_20px_50px_rgba(255,255,255,0.05)] relative group">
+                 <div className="p-8 sm:p-12 bg-white shadow-[30px_30px_0px_0px_rgba(255,255,255,0.03)] border border-white/10 drop-shadow-[0_20px_50px_rgba(255,255,255,0.05)] relative group">
                    <div className="absolute inset-0 bg-red-600 opacity-0 group-hover:opacity-5 transition-opacity" />
                    <QRCodeSVG 
                       value={step === 'waiting' ? getReceiveURL() : getShareURL()} 
@@ -390,29 +390,29 @@ export default function UploadPage() {
               </div>
 
               {/* THREE PILLARS */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-20">
-                 <div className="space-y-10 group">
-                    <div className="text-[8rem] font-black opacity-5 italic leading-none group-hover:text-red-600 transition-colors duration-500">01</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-20">
+                 <div className="space-y-6 md:space-y-10 group">
+                    <div className="text-6xl md:text-[8rem] font-black opacity-5 italic leading-none group-hover:text-red-600 transition-colors duration-500">01</div>
                     <div className="space-y-4">
-                       <h4 className="text-4xl font-black uppercase italic tracking-tighter">Instant Bridge</h4>
+                       <h4 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">Instant Bridge</h4>
                        <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-30 leading-relaxed italic">
                           Tanpa kabel, tanpa Bluetooth, tanpa ribet. Cukup pakai kamera HP Anda untuk memindahkan file 50MB dalam hitungan detik.
                        </p>
                     </div>
                  </div>
-                 <div className="space-y-10 group border-t border-white/5 pt-10 md:border-t-0 md:pt-0">
-                    <div className="text-[8rem] font-black opacity-5 italic leading-none group-hover:text-white transition-colors duration-500">02</div>
+                 <div className="space-y-6 md:space-y-10 group border-t border-white/5 pt-10 md:border-t-0 md:pt-0">
+                    <div className="text-6xl md:text-[8rem] font-black opacity-5 italic leading-none group-hover:text-white transition-colors duration-500">02</div>
                     <div className="space-y-4">
-                       <h4 className="text-4xl font-black uppercase italic tracking-tighter">E2EE Privacy</h4>
+                       <h4 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">E2EE Privacy</h4>
                        <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-30 leading-relaxed italic">
                           Data dienkripsi sebelum meninggalkan browser Anda. Tidak ada yang bisa melihat isinya, termasuk server kami sekalipun.
                        </p>
                     </div>
                  </div>
-                 <div className="space-y-10 group border-t border-white/5 pt-10 md:border-t-0 md:pt-0">
-                    <div className="text-[8rem] font-black opacity-5 italic leading-none group-hover:text-red-600 transition-colors duration-500">03</div>
+                 <div className="space-y-6 md:space-y-10 group border-t border-white/5 pt-10 md:border-t-0 md:pt-0">
+                    <div className="text-6xl md:text-[8rem] font-black opacity-5 italic leading-none group-hover:text-red-600 transition-colors duration-500">03</div>
                     <div className="space-y-4">
-                       <h4 className="text-4xl font-black uppercase italic tracking-tighter">Zero Footprint</h4>
+                       <h4 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter">Zero Footprint</h4>
                        <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-30 leading-relaxed italic">
                           Kami membenci jejak. Data Anda otomatis hancur dalam 30 menit atau sekali akses. Sempurna untuk privasi total.
                        </p>
