@@ -203,3 +203,8 @@ body {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 0.8; }
 }
+
+.text-outline {
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.2);
+  color: transparent !important;
+}
