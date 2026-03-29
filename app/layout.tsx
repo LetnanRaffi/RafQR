@@ -10,10 +10,13 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "RafQR — by RaffiTech Solutions",
-  description: "Secure & Instant Transfer by RaffiTech Solutions. Clean, minimal, and premium.",
+  description: "Secure & Instant Transfer by RaffiTech Solutions. Clean, minimal, and premium v2.3.",
   icons: {
-    icon: "/logo.svg",
-    apple: "/logo.svg",
+    icon: [
+      { url: '/logo.svg', type: 'image/svg+xml' },
+      { url: '/icon.svg', type: 'image/svg+xml' }
+    ],
+    apple: '/icon.svg',
   },
 };
 
