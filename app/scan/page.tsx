@@ -61,73 +61,76 @@ export default function QRScannerPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black font-sans flex flex-col p-6 sm:p-10">
-      <header className="flex justify-between items-center mb-16">
-        <button onClick={() => router.push('/')} className="flex items-center gap-3">
-          <Logo size={32} />
-          <h1 className="text-xl font-black tracking-tighter uppercase italic">RafQR Scan</h1>
+    <div className="min-h-screen bg-transparent text-white font-sans flex flex-col p-6 sm:p-10">
+      <nav className="relative z-10 flex justify-between items-center max-w-5xl mx-auto w-full mb-12">
+        <button onClick={() => router.push('/')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <Logo size={24} />
+          <h1 className="text-lg font-bold tracking-tight">RafQR Pindai</h1>
         </button>
-        <button onClick={() => router.push('/')} className="opacity-40 hover:opacity-100 transition-opacity"><ArrowLeftIcon /></button>
-      </header>
+        <button onClick={() => router.push('/')} className="bg-white/5 hover:bg-white/10 p-3 rounded-full transition-colors border border-white/10"><ArrowLeftIcon /></button>
+      </nav>
 
-      <main className="max-w-xl mx-auto w-full flex-1 flex flex-col justify-center">
+      <main className="max-w-xl mx-auto w-full flex-1 flex flex-col justify-center animate-fade-in pb-24">
         <div className="space-y-12">
-          <div className="space-y-4">
-             <h2 className="text-4xl sm:text-6xl font-black uppercase tracking-tighter leading-none">Instant <br /><span className="opacity-20">QR Scanner</span></h2>
-             <p className="text-[10px] font-black uppercase tracking-widest opacity-40 leading-relaxed max-w-sm">Arahkan kamera ke QR Code di layar PC untuk melanjutkan proses transfer.</p>
+          <div className="space-y-4 text-center">
+             <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-6 mx-auto">
+               <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10V5a2 2 0 012-2h5m4 0h5a2 2 0 012 2v5m0 4v5a2 2 0 01-2 2h-5m-4 0H5a2 2 0 01-2-2v-5M12 12h.01M9 12h.01M15 12h.01" /></svg>
+             </div>
+             <h2 className="text-4xl font-bold tracking-tight mb-2">Pindai QR Code</h2>
+             <p className="text-sm text-gray-400 font-medium">Arahkan kamera ke arah QR Code yang digenerate oleh perangkat pengirim untuk menghubungkan sesi.</p>
           </div>
 
-          <div className="relative group overflow-hidden border border-white/10 p-4 bg-white/[0.02]">
-            <div id="qr-reader" className="w-full !border-none !bg-transparent" />
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/20" />
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-white/20" />
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-white/20" />
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/20" />
+          <div className="glass-panel p-2 rounded-[2rem] relative group border border-white/10 overflow-hidden shadow-2xl">
+            <div id="qr-reader" className="w-full !border-none !bg-white/5 rounded-[1.5rem] overflow-hidden" />
           </div>
 
           {error && (
-            <div className="bg-red-950/20 border border-red-900/40 p-6 text-[10px] font-black uppercase tracking-widest text-red-500 animate-pulse">
-               ERROR: {error}
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-xs font-semibold text-red-400 text-center">
+               KESALAHAN: {error}
             </div>
           )}
-          
-          <div className="p-8 border border-white/5 opacity-10 flex flex-col gap-2">
-             <p className="text-[8px] font-black uppercase tracking-widest">Scanner V1.0 - RaffiTech Labs</p>
-             <p className="text-[8px] font-black uppercase tracking-widest">Supports: /d/ /u/</p>
-          </div>
         </div>
       </main>
 
       {/* Override html5-qrcode styles to match branding */}
       <style jsx global>{`
+        #qr-reader {
+          border: none !important;
+        }
         #qr-reader__dashboard {
-          padding: 20px 0 !important;
+          padding: 24px !important;
           background: transparent !important;
         }
+        #qr-reader__dashboard_section_csr span button,
         #qr-reader__dashboard_section_csr button {
-          background: white !important;
-          color: black !important;
-          font-weight: 900 !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.2em !important;
-          font-size: 10px !important;
-          padding: 12px 24px !important;
+          background: rgba(79,70,229,1) !important;
+          color: white !important;
+          font-weight: 600 !important;
+          font-size: 13px !important;
+          padding: 10px 20px !important;
           border: none !important;
-          border-radius: 0 !important;
+          border-radius: 12px !important;
+          transition: background 0.2s !important;
+        }
+        #qr-reader__dashboard_section_csr button:hover {
+          background: rgba(79,70,229,0.8) !important;
         }
         #qr-reader__camera_selection {
-          background: #111 !important;
+          background: rgba(255,255,255,0.05) !important;
           color: white !important;
           border: 1px solid rgba(255,255,255,0.1) !important;
-          font-size: 10px !important;
-          padding: 8px !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.1em !important;
+          border-radius: 10px !important;
+          font-size: 13px !important;
+          padding: 10px !important;
+          margin-bottom: 12px !important;
+          outline: none;
         }
         #qr-reader__status_span {
-           font-size: 10px !important;
-           text-transform: uppercase !important;
-           opacity: 0.4 !important;
+           font-size: 12px !important;
+           color: rgba(255,255,255,0.5) !important;
+        }
+        #qr-reader__dashboard_section_swaplink {
+           display: none !important;
         }
       `}</style>
     </div>
