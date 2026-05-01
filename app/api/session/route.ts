@@ -41,6 +41,24 @@ export async function POST(request: NextRequest) {
     };
 
     const uniqueId = existingId || nanoid(10);
+    
+    // Safety Collision Check
+    if (existingId) {
+      const existingSession = await getFileSession(existingId);
+      if (existingSession) {
+        // If someone tries to RECEIVE (WAITING_FOR_UPLOAD) on an ID that's already in use
+        if (textContent === 'WAITING_FOR_UPLOAD') {
+          return NextResponse.json({ error: 'ID ini sedang aktif digunakan oleh pengguna lain.' }, { status: 409 });
+        }
+        
+        // If someone tries to SEND data but the session already has active files/text
+        // We only allow overwrite if the existing session is purely 'WAITING_FOR_UPLOAD'
+        if ((files?.length || textContent) && existingSession.textContent !== 'WAITING_FOR_UPLOAD') {
+           return NextResponse.json({ error: 'ID ini sudah berisi data / terkunci oleh pengirim lain.' }, { status: 409 });
+        }
+      }
+    }
+
     await createFileSession(uniqueId, sessionData, 1800);
 
     return NextResponse.json({

@@ -222,7 +222,7 @@ export default function UploadPage() {
                  <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
                  RafQR V3.5 Secure Engine
                </div>
-               <h2 className="text-5xl sm:text-7xl md:text-8xl font-black tracking-tighter mb-6 leading-none">
+               <h2 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 sm:mb-6 leading-none">
                   Jembatan <br className="sm:hidden" />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 drop-shadow-[0_0_30px_rgba(168,85,247,0.4)]">
                     Data Anda
@@ -253,8 +253,9 @@ export default function UploadPage() {
                      <div className="bg-white/5 p-4 rounded-full mb-4">
                        <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                      </div>
-                     <h3 className="text-lg font-semibold mb-1">Klik atau lepaskan file di sini</h3>
-                     <p className="text-xs text-gray-400">Ukuran maksimal 50 MB / Tipe Bebas</p>
+                     <h3 className="text-base sm:text-lg font-semibold mb-1">Pilih File atau Seret ke sini</h3>
+                     <p className="text-xs text-gray-400 mb-4">Ukuran maksimal 50 MB / Tipe Bebas</p>
+                     <div className="bg-white/10 hover:bg-white/20 px-6 py-2.5 rounded-full text-xs font-semibold backdrop-blur-sm transition-colors border border-white/10 text-white">Cari File</div>
                      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => setSelectedFiles(p => [...p, ...Array.from(e.target.files || [])])} disabled={isUploading} />
                    </div>
 

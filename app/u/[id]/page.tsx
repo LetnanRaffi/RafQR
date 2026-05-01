@@ -115,11 +115,12 @@ export default function MobileUploaderPage() {
               className="p-8 pb-10 border-2 border-dashed border-white/10 hover:border-indigo-500/50 bg-white/[0.02] hover:bg-white/[0.05] cursor-pointer rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2"
               onClick={() => fileInputRef.current?.click()}
             >
-              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-2">
+              <div className="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-2">
                 <UploadCloudIcon />
               </div>
-              <p className="font-semibold text-sm">Pilih file untuk ditransmisikan</p>
-              <p className="text-xs text-gray-500 font-medium">Bebas tipe file maksimal 50MB</p>
+              <p className="font-semibold text-base sm:text-lg">Tahan atau Pilih Dokumen</p>
+              <p className="text-xs text-gray-500 font-medium mb-3">Maksimal 50MB per file</p>
+              <div className="bg-white/10 hover:bg-white/20 px-6 py-2.5 rounded-full text-xs font-semibold backdrop-blur-sm transition-colors border border-white/10 text-white shadow-lg">Cari File</div>
               <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => setSelectedFiles(p => [...p, ...Array.from(e.target.files || [])])} />
             </div>
 
