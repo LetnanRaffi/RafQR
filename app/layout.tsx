@@ -79,15 +79,7 @@ export default function RootLayout({
     <html lang="id" className={outfitFont.variable}>
       <body className={`${outfitFont.className} font-sans`}>
         <div className="mesh-blob" />
-        <svg
-          className="pointer-events-none fixed inset-0 z-[-1] h-full w-full opacity-[0.05]"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <filter id="noiseFilter">
-            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch" />
-          </filter>
-          <rect width="100%" height="100%" filter="url(#noiseFilter)" />
-        </svg>
+        {/* SVG Noise filter removed for massive performance boost */}
         <noscript>
           <div style={{ padding: "20px", textAlign: "center", color: "white", background: "#030712" }}>
             <h1>RafQR — Seamless & Instant Secure Data Transfer</h1>

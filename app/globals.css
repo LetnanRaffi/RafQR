@@ -32,7 +32,7 @@ body::before, body::after {
   z-index: -1;
   filter: blur(140px);
   opacity: 0.2;
-  animation: floatOrb 25s infinite ease-in-out alternate;
+  /* Removed continuous animation to save massive GPU usage */
 }
 
 body::before {
@@ -45,8 +45,6 @@ body::after {
   bottom: -40%;
   right: -20%;
   background: radial-gradient(circle, #ec4899 0%, rgba(236,72,153,0) 70%);
-  animation-delay: -12s;
-  animation-duration: 30s;
 }
 
 /* Extra decorative mesh blob */
