@@ -88,6 +88,13 @@ export default function RootLayout({
           </filter>
           <rect width="100%" height="100%" filter="url(#noiseFilter)" />
         </svg>
+        <noscript>
+          <div style={{ padding: "20px", textAlign: "center", color: "white", background: "#030712" }}>
+            <h1>RafQR — Seamless & Instant Secure Data Transfer</h1>
+            <p>Kirim file dan teks secara instan antar perangkat dengan End-to-End Encryption. Tanpa login, tanpa jejak, maksimal keamanan dengan RafQR Data Bridge buatan RaffiTech Labs.</p>
+            <p><strong>Silakan aktifkan JavaScript untuk menggunakan aplikasi ini.</strong></p>
+          </div>
+        </noscript>
         {children}
       </body>
     </html>
