@@ -6,11 +6,13 @@
 export const Logo = ({ 
   size = 32, 
   smSize = 40,
-  className = "" 
+  className = "",
+  color = "black"
 }: { 
   size?: number, 
   smSize?: number,
-  className?: string 
+  className?: string,
+  color?: "black" | "white"
 }) => {
   return (
     <div 
@@ -25,12 +27,12 @@ export const Logo = ({
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
       >
-        <path d="M0 0H32V32H0V0Z" fill="white"/>
-        <path d="M4 4H12V12H4V4ZM4 20H12V28H4V20ZM20 4H28V12H20V4Z" fill="black"/>
-        <path d="M20 20H24V24H20V20ZM24 24H28V28H24V24ZM20 25H22V28H20V25ZM25 20H28V22H25V20Z" fill="black"/>
-        <rect x="6" y="6" width="4" height="4" fill="white" opacity="0.2"/>
-        <rect x="22" y="6" width="4" height="4" fill="white" opacity="0.2"/>
-        <rect x="6" y="22" width="4" height="4" fill="white" opacity="0.2"/>
+        <path d="M0 0H32V32H0V0Z" fill={color === "white" ? "black" : "white"}/>
+        <path d="M4 4H12V12H4V4ZM4 20H12V28H4V20ZM20 4H28V12H20V4Z" fill={color === "white" ? "white" : "black"}/>
+        <path d="M20 20H24V24H20V20ZM24 24H28V28H24V24ZM20 25H22V28H20V25ZM25 20H28V22H25V20Z" fill={color === "white" ? "white" : "black"}/>
+        <rect x="6" y="6" width="4" height="4" fill={color === "white" ? "black" : "white"} opacity="0.2"/>
+        <rect x="22" y="6" width="4" height="4" fill={color === "white" ? "black" : "white"} opacity="0.2"/>
+        <rect x="6" y="22" width="4" height="4" fill={color === "white" ? "black" : "white"} opacity="0.2"/>
       </svg>
     </div>
   );
