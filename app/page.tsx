@@ -55,6 +55,7 @@ export default function UploadPage() {
   const [e2eeEnabled, setE2eeEnabled] = useState(false);
   const [encryptionKey, setEncryptionKey] = useState('');
   const [customId, setCustomId] = useState('');
+  const [isManualId, setIsManualId] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -110,6 +111,12 @@ export default function UploadPage() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (activeMode === 'receive' && !isManualId && !customId) {
+      setCustomId(nanoid(8).toUpperCase());
+    }
+  }, [activeMode, isManualId, customId]);
 
   useEffect(() => {
     const newPs: Record<string, string> = {};
@@ -220,9 +227,6 @@ export default function UploadPage() {
           <div className="w-full flex justify-center animate-fade-in flex-col items-center">
             {/* HERO */}
             <div className="text-center mb-12 flex flex-col items-center">
-               <div className="neo-tag bg-neo-pink text-white mb-6 transform rotate-1">
-                 RafQR V3.5 Secure Engine
-               </div>
                <h2 className="text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter mb-4 sm:mb-6 leading-none uppercase">
                   Jembatan <br className="sm:hidden" />
                   <span className="bg-neo-yellow px-4 border-4 border-black shadow-neo inline-block rotate-[-1deg]">
@@ -355,21 +359,44 @@ export default function UploadPage() {
               ) : (
                 <div className="p-8 text-center space-y-8 flex flex-col items-center">
                    <div className="w-20 h-20 bg-neo-yellow border-4 border-black shadow-neo flex items-center justify-center mb-2 rotate-3">
-                     <svg className="w-10 h-10 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                     <Logo size={40} />
                    </div>
-                   <h2 className="text-3xl font-black uppercase tracking-tighter">Terima File Langsung</h2>
-                   <p className="text-black text-sm font-bold max-w-sm">Masukkan <span className="underline decoration-4 decoration-neo-pink">T-ID</span> milik pengirim file untuk terhubung.</p>
-                   
-                   <div className="w-full space-y-6 pt-4 text-left">
-                     <div className="space-y-2">
-                        <label className="text-xs font-black uppercase ml-1">ID Pengirim</label>
-                        <input disabled={isUploading} value={customId} onChange={(e) => setCustomId(e.target.value)} placeholder="Contoh: raf-123" className="neo-input text-center tracking-[0.2em] uppercase font-black text-xl" />
-                     </div>
-                     <button onClick={handleReceive} disabled={isUploading || !customId.trim()} className="w-full neo-btn bg-black text-white hover:bg-neo-blue py-4 text-lg">
-                       {isUploading ? 'Menyambungkan...' : 'Hubungkan'}
-                     </button>
-                   </div>
-                   {error && <p className="text-center text-xs font-black text-neo-pink uppercase mt-4 italic">!! {error} !!</p>}
+                    <h2 className="text-3xl font-black uppercase tracking-tighter">Terima File Langsung</h2>
+                    <p className="text-black text-sm font-bold max-w-sm">Siapkan <span className="underline decoration-4 decoration-neo-pink">T-ID</span> ini agar pengirim bisa mengirimkan file langsung ke perangkat ini.</p>
+                    
+                    <div className="w-full space-y-6 pt-4 text-left">
+                      <div className="space-y-2">
+                         <div className="flex justify-between items-end mb-1">
+                           <label className="text-xs font-black uppercase ml-1">ID Pengiriman (T-ID)</label>
+                           <button onClick={() => setIsManualId(!isManualId)} className="text-[10px] font-black uppercase underline decoration-2 decoration-neo-blue hover:text-neo-blue transition-colors">
+                             {isManualId ? 'Gunakan Auto-ID' : 'Gunakan Custom ID'}
+                           </button>
+                         </div>
+                         <div className="relative">
+                           <input 
+                             disabled={!isManualId || isUploading} 
+                             value={customId} 
+                             onChange={(e) => setCustomId(e.target.value)} 
+                             placeholder="CONTOH: RAF-123" 
+                             className={`neo-input text-center tracking-[0.2em] uppercase font-black text-xl w-full ${!isManualId ? 'bg-neo-blue/10 cursor-not-allowed border-dashed' : 'bg-white'}`} 
+                           />
+                           {!isManualId && (
+                             <button onClick={() => setCustomId(nanoid(8).toUpperCase())} className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-black hover:text-white transition-all border-2 border-transparent hover:border-black">
+                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                             </button>
+                           )}
+                         </div>
+                      </div>
+                      <button onClick={handleReceive} disabled={isUploading || !customId.trim()} className="w-full neo-btn bg-black text-white hover:bg-neo-blue py-4 text-lg flex items-center justify-center gap-2">
+                        {isUploading ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                            Menyambungkan...
+                          </>
+                        ) : 'Aktifkan Penerimaan'}
+                      </button>
+                    </div>
+                    {error && <p className="text-center text-xs font-black text-neo-pink uppercase mt-4 italic">!! {error} !!</p>}
                 </div>
               )}
             </div>
