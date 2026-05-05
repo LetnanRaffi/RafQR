@@ -201,14 +201,16 @@ export default function UploadPage() {
   const getReceiveURL = () => (typeof window !== 'undefined' ? `${window.location.origin}/u/${uniqueId}` : '');
 
   return (
-    <div className="min-h-screen bg-transparent text-white font-sans flex flex-col overflow-x-hidden selection:bg-indigo-500/30 selection:text-white">
+    <div className="min-h-screen bg-white text-black font-sans flex flex-col overflow-x-hidden selection:bg-neo-yellow selection:text-black">
       {/* NAVBAR */}
-      <nav className="relative z-10 px-8 py-6 flex justify-between items-center max-w-7xl mx-auto w-full animate-slide-down">
-        <button onClick={() => setStep('input')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <Logo size={28} />
-          <h1 className="text-xl font-bold tracking-tight">RafQR</h1>
+      <nav className="relative z-10 px-4 sm:px-8 py-6 flex justify-between items-center max-w-7xl mx-auto w-full border-b-4 border-black bg-neo-yellow">
+        <button onClick={() => setStep('input')} className="flex items-center gap-3 hover:-rotate-2 transition-transform">
+          <div className="bg-black p-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]">
+            <Logo size={24} color="white" />
+          </div>
+          <h1 className="text-2xl font-black tracking-tighter uppercase">RafQR</h1>
         </button>
-        <button onClick={() => window.location.href = '/scan'} className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-full text-xs font-semibold tracking-wide transition-all backdrop-blur-md border border-white/10">
+        <button onClick={() => window.location.href = '/scan'} className="neo-btn bg-white text-xs px-4 py-2 hover:bg-neo-green">
            Scan QR
         </button>
       </nav>
@@ -218,26 +220,25 @@ export default function UploadPage() {
           <div className="w-full flex justify-center animate-fade-in flex-col items-center">
             {/* HERO */}
             <div className="text-center mb-12 flex flex-col items-center">
-               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-semibold uppercase tracking-widest mb-6 backdrop-blur-sm hover:bg-indigo-500/20 transition-colors shadow-[0_0_20px_rgba(79,70,229,0.2)]">
-                 <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+               <div className="neo-tag bg-neo-pink text-white mb-6 transform rotate-1">
                  RafQR V3.5 Secure Engine
                </div>
-               <h2 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-4 sm:mb-6 leading-none">
+               <h2 className="text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter mb-4 sm:mb-6 leading-none uppercase">
                   Jembatan <br className="sm:hidden" />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 drop-shadow-[0_0_30px_rgba(168,85,247,0.4)]">
+                  <span className="bg-neo-yellow px-4 border-4 border-black shadow-neo inline-block rotate-[-1deg]">
                     Data Anda
                   </span>
                </h2>
-               <p className="text-base sm:text-lg text-gray-400/90 max-w-xl mx-auto font-medium leading-relaxed">
-                  Transfer file & teks antar perangkat layaknya teleportasi. Nol instalasi, nol akun, privasi absolut.
+               <p className="text-lg sm:text-xl text-black max-w-xl mx-auto font-bold leading-tight mt-4">
+                  Transfer file & teks antar perangkat layaknya teleportasi. <span className="bg-neo-green px-1">Nol instalasi, nol akun, privasi absolut.</span>
                </p>
             </div>
 
-            <div className="glass-panel w-full max-w-2xl p-2 flex flex-col mb-12">
+            <div className="neo-card w-full max-w-2xl p-4 flex flex-col mb-12 bg-neo-blue/5">
               {/* TOGGLES */}
-              <div className="flex bg-white/5 rounded-2xl p-1 mb-6">
-                 <button onClick={() => setActiveMode('send')} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all ${activeMode === 'send' ? 'bg-white text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}>Mulai Kirim</button>
-                 <button onClick={() => setActiveMode('receive')} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all ${activeMode === 'receive' ? 'bg-white text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}>Terima File</button>
+              <div className="flex bg-black p-1 mb-6 border-2 border-black">
+                 <button onClick={() => setActiveMode('send')} className={`flex-1 py-3 text-sm font-black uppercase tracking-widest transition-all ${activeMode === 'send' ? 'bg-neo-yellow text-black' : 'text-white hover:bg-white/10'}`}>Mulai Kirim</button>
+                 <button onClick={() => setActiveMode('receive')} className={`flex-1 py-3 text-sm font-black uppercase tracking-widest transition-all ${activeMode === 'receive' ? 'bg-neo-yellow text-black' : 'text-white hover:bg-white/10'}`}>Terima File</button>
               </div>
 
               {activeMode === 'send' ? (
@@ -248,14 +249,14 @@ export default function UploadPage() {
                       onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                       onDragLeave={() => setIsDragging(false)}
                       onDrop={(e) => { e.preventDefault(); setIsDragging(false); if(!isUploading) setSelectedFiles(p => [...p, ...Array.from(e.dataTransfer.files)]); }}
-                      className={`relative overflow-hidden rounded-2xl border-2 border-dashed transition-all cursor-pointer ${isDragging ? 'border-indigo-500 bg-indigo-500/10' : 'border-white/10 hover:border-white/20 hover:bg-white/[0.02]'} ${isUploading ? 'opacity-50 cursor-not-allowed' : ''} p-10 flex flex-col items-center justify-center text-center`}
+                      className={`relative overflow-hidden border-4 border-black transition-all cursor-pointer ${isDragging ? 'bg-neo-green shadow-none translate-x-1 translate-y-1' : 'bg-white shadow-neo hover:shadow-neo-lg'} ${isUploading ? 'opacity-50 cursor-not-allowed' : ''} p-10 flex flex-col items-center justify-center text-center`}
                    >
-                     <div className="bg-white/5 p-4 rounded-full mb-4">
-                       <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                     </div>
-                     <h3 className="text-base sm:text-lg font-semibold mb-1">Pilih File atau Seret ke sini</h3>
-                     <p className="text-xs text-gray-400 mb-4">Ukuran maksimal 50 MB / Tipe Bebas</p>
-                     <div className="bg-white/10 hover:bg-white/20 px-6 py-2.5 rounded-full text-xs font-semibold backdrop-blur-sm transition-colors border border-white/10 text-white">Cari File</div>
+                      <div className="bg-black p-4 border-2 border-black mb-4 shadow-[4px_4px_0px_0px_rgba(163,230,53,1)]">
+                        <svg className="w-8 h-8 text-neo-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                      </div>
+                      <h3 className="text-xl font-black uppercase mb-1">Pilih File atau Seret</h3>
+                      <p className="text-xs font-bold mb-4 text-black/60">Maks 50 MB / Tipe Bebas</p>
+                      <div className="neo-btn bg-black text-white text-xs py-2">Cari File</div>
                      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => setSelectedFiles(p => [...p, ...Array.from(e.target.files || [])])} disabled={isUploading} />
                    </div>
 
@@ -263,13 +264,13 @@ export default function UploadPage() {
                    {selectedFiles.length > 0 && (
                       <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
                         {selectedFiles.map((f, i) => (
-                          <div key={i} className="aspect-square bg-white/5 rounded-xl border border-white/10 flex items-center justify-center relative group overflow-hidden">
+                          <div key={i} className="aspect-square bg-white border-2 border-black shadow-neo-hover flex items-center justify-center relative group overflow-hidden">
                             {previews[`${f.name}-${f.lastModified}`] ? (
-                              <img src={previews[`${f.name}-${f.lastModified}`]} className="object-cover w-full h-full opacity-60" />
+                              <img src={previews[`${f.name}-${f.lastModified}`]} className="object-cover w-full h-full" />
                             ) : (
-                              <span className="text-[10px] font-bold opacity-40 text-center px-1 truncate">{f.name.split('.').pop()?.toUpperCase()}</span>
+                              <span className="text-[10px] font-black text-center px-1 truncate">{f.name.split('.').pop()?.toUpperCase()}</span>
                             )}
-                            <button onClick={(e) => { e.stopPropagation(); setSelectedFiles(p => p.filter((_, idx) => idx !== i)); }} className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm"><XIcon /></button>
+                            <button onClick={(e) => { e.stopPropagation(); setSelectedFiles(p => p.filter((_, idx) => idx !== i)); }} className="absolute inset-0 bg-neo-pink/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><XIcon /></button>
                           </div>
                         ))}
                       </div>
@@ -277,43 +278,43 @@ export default function UploadPage() {
 
                    {/* TEXT AREA */}
                    <div className="relative group">
-                     <textarea disabled={isUploading} value={textContent} onChange={(e) => setTextContent(e.target.value)} placeholder="Ketik pesan atau salin teks rahasia di sini..." className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-5 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all resize-none placeholder-gray-500" />
+                     <textarea disabled={isUploading} value={textContent} onChange={(e) => setTextContent(e.target.value)} placeholder="Ketik pesan rahasia di sini..." className="neo-input h-32 resize-none placeholder-gray-500" />
                      <button
                         onClick={isRecording ? stopRecording : startRecording}
                         disabled={isUploading}
                         title={isRecording ? "Stop Recording" : "Record Voice Note"}
-                        className={`absolute bottom-4 right-4 p-2.5 rounded-full backdrop-blur-md transition-all shadow-lg ${isRecording ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-red-500/40' : 'bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white'}`}
+                        className={`absolute bottom-4 right-4 p-3 border-2 border-black transition-all shadow-neo-hover active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isRecording ? 'bg-neo-pink text-white animate-pulse' : 'bg-neo-yellow text-black'}`}
                      >
                        {isRecording ? <StopIcon /> : <MicIcon />}
                      </button>
                    </div>
 
                    {/* SETTINGS */}
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <label className={`flex items-center justify-between p-4 rounded-2xl border border-white/5 cursor-pointer transition-all ${e2eeEnabled ? 'bg-indigo-500/20 border-indigo-500/50' : 'bg-white/5 hover:bg-white/10'}`}>
-                         <span className="text-sm font-medium">Bungkus E2EE</span>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className={`flex items-center justify-between p-4 border-3 border-black cursor-pointer transition-all ${e2eeEnabled ? 'bg-neo-green shadow-none translate-x-1 translate-y-1' : 'bg-white shadow-neo-hover'}`}>
+                         <span className="text-sm font-black uppercase">Bungkus E2EE</span>
                          <input type="checkbox" checked={e2eeEnabled} onChange={() => setE2eeEnabled(!e2eeEnabled)} className="sr-only" />
-                         <div className={`w-10 h-5 rounded-full transition-colors relative ${e2eeEnabled ? 'bg-indigo-500' : 'bg-white/20'}`}>
-                           <div className={`absolute top-1 left-1 bg-white w-3 h-3 rounded-full transition-transform ${e2eeEnabled ? 'translate-x-5' : ''}`} />
+                         <div className={`w-10 h-5 border-2 border-black transition-colors relative ${e2eeEnabled ? 'bg-black' : 'bg-white'}`}>
+                           <div className={`absolute top-0.5 left-0.5 bg-neo-yellow w-3 h-3 border border-black transition-transform ${e2eeEnabled ? 'translate-x-5' : ''}`} />
                          </div>
                       </label>
-                      <label className={`flex items-center justify-between p-4 rounded-2xl border border-white/5 cursor-pointer transition-all ${ghostMode ? 'bg-indigo-500/20 border-indigo-500/50' : 'bg-white/5 hover:bg-white/10'}`}>
-                         <span className="text-sm font-medium">Auto-Hapus</span>
+                      <label className={`flex items-center justify-between p-4 border-3 border-black cursor-pointer transition-all ${ghostMode ? 'bg-neo-pink text-white shadow-none translate-x-1 translate-y-1' : 'bg-white shadow-neo-hover'}`}>
+                         <span className="text-sm font-black uppercase">Auto-Hapus</span>
                          <input type="checkbox" checked={ghostMode} onChange={() => setGhostMode(!ghostMode)} className="sr-only" />
-                         <div className={`w-10 h-5 rounded-full transition-colors relative ${ghostMode ? 'bg-indigo-500' : 'bg-white/20'}`}>
-                           <div className={`absolute top-1 left-1 bg-white w-3 h-3 rounded-full transition-transform ${ghostMode ? 'translate-x-5' : ''}`} />
+                         <div className={`w-10 h-5 border-2 border-black transition-colors relative ${ghostMode ? 'bg-white' : 'bg-black'}`}>
+                           <div className={`absolute top-0.5 left-0.5 bg-neo-yellow w-3 h-3 border border-black transition-transform ${ghostMode ? 'translate-x-5' : ''}`} />
                          </div>
                       </label>
-                      <label className={`flex items-center justify-between p-4 rounded-2xl border border-white/5 cursor-pointer transition-all ${pinMode ? 'bg-indigo-500/20 border-indigo-500/50' : 'bg-white/5 hover:bg-white/10'}`}>
-                         <span className="text-sm font-medium">Gembok PIN</span>
+                      <label className={`flex items-center justify-between p-4 border-3 border-black cursor-pointer transition-all ${pinMode ? 'bg-neo-purple text-white shadow-none translate-x-1 translate-y-1' : 'bg-white shadow-neo-hover'}`}>
+                         <span className="text-sm font-black uppercase">Gembok PIN</span>
                          <input type="checkbox" checked={pinMode} onChange={() => setPinMode(!pinMode)} className="sr-only" />
-                         <div className={`w-10 h-5 rounded-full transition-colors relative ${pinMode ? 'bg-indigo-500' : 'bg-white/20'}`}>
-                           <div className={`absolute top-1 left-1 bg-white w-3 h-3 rounded-full transition-transform ${pinMode ? 'translate-x-5' : ''}`} />
+                         <div className={`w-10 h-5 border-2 border-black transition-colors relative ${pinMode ? 'bg-white' : 'bg-black'}`}>
+                           <div className={`absolute top-0.5 left-0.5 bg-neo-yellow w-3 h-3 border border-black transition-transform ${pinMode ? 'translate-x-5' : ''}`} />
                          </div>
                       </label>
-                      <div className="p-1 border border-white/5 bg-white/5 rounded-2xl flex items-center px-4 gap-2 focus-within:border-indigo-500/50 transition-colors">
-                         <span className="text-gray-500 text-xs font-semibold">T-ID</span>
-                         <input disabled={isUploading} value={customId} onChange={(e) => setCustomId(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase())} placeholder="otomatis" className="bg-transparent w-full focus:outline-none text-sm" />
+                      <div className="p-1 border-3 border-black bg-white shadow-neo-hover flex items-center px-4 gap-2">
+                         <span className="text-black text-xs font-black uppercase">T-ID</span>
+                         <input disabled={isUploading} value={customId} onChange={(e) => setCustomId(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase())} placeholder="otomatis" className="bg-transparent w-full focus:outline-none text-sm font-bold" />
                       </div>
                    </div>
 
@@ -334,38 +335,41 @@ export default function UploadPage() {
 
                     <div className="pt-4">
                       {!isUploading ? (
-                        <button onClick={handleUpload} className="w-full py-4 bg-white hover:bg-gray-100 text-black rounded-xl font-bold tracking-wide transition-all shadow-[0_0_40px_-10px_rgba(255,255,255,0.5)] flex items-center justify-center gap-2">
-                          Mulai Transfer
-                        </button>
+                         <button onClick={handleUpload} className="w-full neo-btn bg-black text-white hover:bg-neo-green hover:text-black py-4 text-lg">
+                           Mulai Transfer
+                         </button>
                       ) : (
-                        <div className="space-y-3 bg-white/5 p-5 rounded-xl border border-white/10">
-                           <div className="flex justify-between text-xs font-medium text-gray-400">
-                             <span>Memproses...</span>
-                             <span>{overallProgress}%</span>
-                           </div>
-                           <div className="h-1.5 bg-white/10 rounded-full w-full overflow-hidden">
-                             <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300" style={{ width: `${overallProgress}%` }} />
-                           </div>
-                        </div>
+                         <div className="space-y-3 bg-black text-white p-5 border-4 border-black">
+                            <div className="flex justify-between text-xs font-black uppercase">
+                              <span>Memproses...</span>
+                              <span>{overallProgress}%</span>
+                            </div>
+                            <div className="h-4 bg-white border-2 border-white w-full overflow-hidden">
+                              <div className="h-full bg-neo-green transition-all duration-300" style={{ width: `${overallProgress}%` }} />
+                            </div>
+                         </div>
                       )}
                       {error && <p className="text-center text-xs font-medium text-red-400 mt-4">{error}</p>}
                    </div>
                 </div>
               ) : (
-                <div className="p-8 text-center space-y-8 animate-fade-in flex flex-col items-center">
-                   <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-2">
-                     <svg className="w-8 h-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <div className="p-8 text-center space-y-8 flex flex-col items-center">
+                   <div className="w-20 h-20 bg-neo-yellow border-4 border-black shadow-neo flex items-center justify-center mb-2 rotate-3">
+                     <svg className="w-10 h-10 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                    </div>
-                   <h2 className="text-2xl font-bold">Terima File Langsung</h2>
-                   <p className="text-gray-400 text-sm max-w-sm">Masukkan <span className="font-semibold text-white">ID (T-ID)</span> milik pengirim file untuk terhubung.</p>
+                   <h2 className="text-3xl font-black uppercase tracking-tighter">Terima File Langsung</h2>
+                   <p className="text-black text-sm font-bold max-w-sm">Masukkan <span className="underline decoration-4 decoration-neo-pink">T-ID</span> milik pengirim file untuk terhubung.</p>
                    
-                   <div className="w-full space-y-4 pt-4">
-                     <input disabled={isUploading} value={customId} onChange={(e) => setCustomId(e.target.value)} placeholder="Contoh: raf-123" className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-center tracking-widest font-mono text-lg focus:outline-none focus:border-indigo-500/50 transition-colors" />
-                     <button onClick={handleReceive} disabled={isUploading || !customId.trim()} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold tracking-wide transition-all shadow-[0_0_40px_-10px_rgba(79,70,229,0.5)]">
+                   <div className="w-full space-y-6 pt-4 text-left">
+                     <div className="space-y-2">
+                        <label className="text-xs font-black uppercase ml-1">ID Pengirim</label>
+                        <input disabled={isUploading} value={customId} onChange={(e) => setCustomId(e.target.value)} placeholder="Contoh: raf-123" className="neo-input text-center tracking-[0.2em] uppercase font-black text-xl" />
+                     </div>
+                     <button onClick={handleReceive} disabled={isUploading || !customId.trim()} className="w-full neo-btn bg-black text-white hover:bg-neo-blue py-4 text-lg">
                        {isUploading ? 'Menyambungkan...' : 'Hubungkan'}
                      </button>
                    </div>
-                   {error && <p className="text-center text-xs font-medium text-red-400">{error}</p>}
+                   {error && <p className="text-center text-xs font-black text-neo-pink uppercase mt-4 italic">!! {error} !!</p>}
                 </div>
               )}
             </div>
@@ -373,17 +377,20 @@ export default function UploadPage() {
             {/* HISTORY */}
             {history.length > 0 && (
               <div className="w-full max-w-2xl px-2">
-                 <h4 className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">Sesi Sebelumnya</h4>
-                 <div className="grid gap-2">
+                 <h4 className="flex items-center gap-2 text-xs font-black text-black uppercase tracking-widest mb-4">
+                   <span className="w-3 h-3 bg-neo-green border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]" />
+                   Sesi Sebelumnya
+                 </h4>
+                 <div className="grid gap-3">
                     {history.map((h, i) => (
-                      <div key={i} className="p-4 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center group cursor-pointer hover:bg-white/[0.05] hover:border-white/10 transition-all" onClick={() => window.location.href = `/d/${h.id}`}>
+                      <div key={i} className="p-4 bg-white border-2 border-black shadow-neo-hover flex justify-between items-center group cursor-pointer hover:bg-neo-yellow transition-colors" onClick={() => window.location.href = `/d/${h.id}`}>
                          <div className="flex items-center gap-4">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${h.type === 'send' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={h.type === 'send' ? "M5 10l7-7m0 0l7 7m-7-7v18" : "M19 14l-7 7m0 0l-7-7m7 7V3"} /></svg>
+                            <div className={`w-10 h-10 border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${h.type === 'send' ? 'bg-neo-pink text-white' : 'bg-neo-green text-black'}`}>
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d={h.type === 'send' ? "M5 10l7-7m0 0l7 7m-7-7v18" : "M19 14l-7 7m0 0l-7-7m7 7V3"} /></svg>
                             </div>
-                            <p className="text-sm font-medium text-gray-300">{h.title}</p>
+                            <p className="text-sm font-black uppercase truncate max-w-[150px] sm:max-w-none">{h.title}</p>
                          </div>
-                         <p className="text-xs font-mono text-gray-500">/{h.id}</p>
+                         <p className="text-[10px] font-black bg-black text-white px-2 py-1 transform -rotate-2">/{h.id}</p>
                       </div>
                     ))}
                  </div>
@@ -394,48 +401,48 @@ export default function UploadPage() {
 
         {/* SUCCESS / WAITING STATE */}
         {(step === 'success' || step === 'waiting') && (
-          <div className="animate-scale-in w-full max-w-4xl flex flex-col lg:flex-row gap-12 items-center lg:items-start justify-center mt-12">
+          <div className="w-full max-w-4xl flex flex-col lg:flex-row gap-12 items-center lg:items-center justify-center mt-6">
             <div className="flex-1 space-y-8 text-center lg:text-left">
-               {downloadedAtLeastOnce && <div className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-4 py-1.5 rounded-full inline-flex font-semibold text-[10px] tracking-widest uppercase animate-pulse">Data Telah Disinkronisasi</div>}
+               {downloadedAtLeastOnce && <div className="bg-neo-green border-2 border-black px-4 py-2 inline-flex font-black text-xs uppercase tracking-widest shadow-neo animate-bounce">Data Berhasil Disinkronisasi!</div>}
                <div className="space-y-4">
-                 <h2 className="text-5xl sm:text-7xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-white to-gray-500 leading-tight">
-                   {step === 'waiting' ? 'Siaga' : 'Terhubung!'}
+                 <h2 className="text-6xl sm:text-8xl font-black tracking-tighter uppercase leading-none">
+                   {step === 'waiting' ? <span className="bg-neo-yellow px-2 border-4 border-black">Siaga</span> : <span className="bg-neo-green px-2 border-4 border-black">Terhubung!</span>}
                  </h2>
-                 <p className="text-gray-400 text-sm max-w-sm mx-auto lg:mx-0">
-                   {step === 'waiting' ? 'Menunggu pengirim mentransfer file ke jembatan ini.' : 'Sesi Anda telah aktif dan siap dipindai atau dibagikan ke perangkat tujuan.'}
+                 <p className="text-black text-lg font-bold max-w-sm mx-auto lg:mx-0">
+                   {step === 'waiting' ? 'Menunggu pengirim mentransfer file ke jembatan ini. Jangan tutup halaman ini.' : 'Sesi aktif! Pindai QR atau bagikan link ke perangkat tujuan sekarang.'}
                  </p>
                </div>
                
-               <div className="space-y-3 pt-6 max-w-sm mx-auto lg:mx-0">
-                  <div className="flex items-center p-1 bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:border-indigo-500/50 transition-colors">
-                     <div className="flex-1 px-4 truncate font-mono text-sm text-gray-300">
+               <div className="space-y-4 pt-6 max-w-sm mx-auto lg:mx-0">
+                  <div className="flex items-center bg-white border-4 border-black shadow-neo overflow-hidden">
+                     <div className="flex-1 px-4 truncate font-black text-sm uppercase">
                        {step === 'waiting' ? getReceiveURL() : getShareURL()}
                      </div>
-                     <button onClick={() => copyLink(step === 'waiting' ? getReceiveURL() : getShareURL())} className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 text-xs font-bold rounded-lg transition-colors">
-                       {copied ? 'Tersalin' : 'Salin URL'}
+                     <button onClick={() => copyLink(step === 'waiting' ? getReceiveURL() : getShareURL())} className="bg-black text-white px-6 py-4 text-xs font-black uppercase hover:bg-neo-yellow hover:text-black transition-colors border-l-4 border-black">
+                       {copied ? 'OK!' : 'Salin'}
                      </button>
                   </div>
                   <button onClick={async () => {
                      const url = step === 'waiting' ? getReceiveURL() : getShareURL();
                      if (navigator.share) await navigator.share({ url }); else copyLink(url);
-                  }} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm transition-all shadow-[0_0_30px_-10px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2">
-                     <ShareIcon /> Bagikan Link via Sosmed
+                  }} className="w-full neo-btn bg-neo-blue text-white py-4 text-sm flex items-center justify-center gap-3">
+                     <ShareIcon /> Bagikan via Sosmed
                   </button>
                </div>
                
                {e2eeEnabled && step === 'success' && (
-                  <div className="p-6 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 text-left max-w-sm mx-auto lg:mx-0 mt-8 backdrop-blur-sm">
-                    <span className="text-xs font-semibold text-indigo-300 uppercase tracking-widest mb-3 block">KUNCI PEMBUKA (SECRET)</span>
-                    <p className="text-2xl font-mono text-white break-all">{encryptionKey}</p>
-                    <p className="text-[10px] text-indigo-400/60 mt-3">Infokan kunci ini kepada pemerima. Jika hilang, file tidak bisa diselamatkan.</p>
+                  <div className="p-6 border-4 border-black bg-neo-yellow shadow-neo text-left max-w-sm mx-auto lg:mx-0 mt-8 relative overflow-hidden">
+                    <div className="neo-tag bg-black text-white mb-3 inline-block">KUNCI PEMBUKA (SECRET)</div>
+                    <p className="text-2xl font-black break-all uppercase tracking-tighter">{encryptionKey}</p>
+                    <p className="text-[10px] font-bold text-black/60 mt-3 italic underline decoration-neo-pink underline-offset-2">Infokan kunci ini kepada pemerima. Jika hilang, file tidak bisa diselamatkan.</p>
                   </div>
                )}
                
-               <button onClick={() => setStep('input')} className="text-sm font-medium text-gray-500 hover:text-white transition-colors mt-8 inline-block">Mulai Sesi Baru / Hancurkan Ini</button>
+               <button onClick={() => setStep('input')} className="text-xs font-black uppercase underline decoration-4 decoration-neo-pink hover:bg-neo-pink hover:text-white transition-all mt-8 inline-block p-1">Mulai Sesi Baru / Hancurkan</button>
             </div>
             
-            <div className="glass-panel p-8 bg-white flex flex-col items-center">
-               <div className="bg-white rounded-2xl overflow-hidden p-2">
+            <div className="neo-card p-8 bg-white flex flex-col items-center rotate-2">
+               <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-4">
                  <QRCodeSVG 
                     value={step === 'waiting' ? getReceiveURL() : getShareURL()} 
                     size={qrSize} 
@@ -445,7 +452,7 @@ export default function UploadPage() {
                     marginSize={0}
                  />
                </div>
-               <p className="text-black/40 text-xs font-bold font-mono tracking-widest mt-6">PINDAI QR UTK BUKA</p>
+               <p className="bg-black text-white px-4 py-1 text-xs font-black uppercase tracking-[0.3em] mt-8 -rotate-2">PINDAI QR UTK BUKA</p>
             </div>
           </div>
         )}
@@ -453,61 +460,59 @@ export default function UploadPage() {
 
       {/* LANDING PAGE / WHAT IS THIS? */}
       {step === 'input' && (
-        <section className="w-full mt-12 mb-24 px-6 flex flex-col items-center opacity-90 transition-opacity">
-          <div className="max-w-5xl mx-auto space-y-20">
+        <section className="w-full mt-12 mb-24 px-4 sm:px-6 flex flex-col items-center">
+          <div className="max-w-5xl mx-auto space-y-24">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-white mb-2">Kenapa Memilih RafQR?</h2>
-              <p className="text-gray-400">Dibangun untuk solusi transfer super cepat, rahasia, tanpa bikin pusing.</p>
+              <h2 className="text-4xl sm:text-6xl font-black uppercase tracking-tighter mb-4">Kenapa Memilih RafQR?</h2>
+              <p className="text-lg font-bold">Dibangun untuk solusi transfer super cepat, rahasia, tanpa bikin pusing.</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="glass-panel p-8 rounded-3xl text-left border-t border-white/20 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mb-6 shadow-xl border border-indigo-500/20">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="neo-card p-8 bg-white rotate-1 hover:rotate-0 transition-transform">
+                <div className="w-16 h-16 bg-neo-blue border-4 border-black text-white flex items-center justify-center mb-6 shadow-neo">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold mb-3 text-white tracking-tight">Cepat Secepat Kilat</h3>
-                <p className="text-sm text-gray-400 leading-relaxed font-medium">Lompat batas device! Dari Laptop ke iPhone, Android ke PC. Bebas OS dengan modal browser saja.</p>
+                <h3 className="text-xl font-black uppercase mb-3">Cepat Kilat</h3>
+                <p className="text-sm font-bold leading-snug">Lompat batas device! Dari Laptop ke iPhone, Android ke PC. Bebas OS dengan modal browser saja.</p>
               </div>
-              <div className="glass-panel p-8 rounded-3xl text-left border-t border-white/20 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mb-6 shadow-xl border border-emerald-500/20">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              <div className="neo-card p-8 bg-neo-green -rotate-1 hover:rotate-0 transition-transform">
+                <div className="w-16 h-16 bg-white border-4 border-black text-black flex items-center justify-center mb-6 shadow-neo">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold mb-3 text-white tracking-tight">Kerahasiaan E2EE</h3>
-                <p className="text-sm text-gray-400 leading-relaxed font-medium">Bungkus keamanan dengan AES-256 E2EE. Kunci diproses di browser, kami sekalipun tidak dapat mengintip isinya!</p>
+                <h3 className="text-xl font-black uppercase mb-3">Privasi E2EE</h3>
+                <p className="text-sm font-bold leading-snug">Bungkus keamanan dengan AES-256 E2EE. Kunci diproses di browser, server kami sekalipun tidak dapat mengintip.</p>
               </div>
-              <div className="glass-panel p-8 rounded-3xl text-left border-t border-white/20 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="w-12 h-12 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center mb-6 shadow-xl border border-rose-500/20">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              <div className="neo-card p-8 bg-neo-pink text-white rotate-2 hover:rotate-0 transition-transform">
+                <div className="w-16 h-16 bg-black border-4 border-white text-white flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </div>
-                <h3 className="text-lg font-bold mb-3 text-white tracking-tight">Hilang Tanpa Sisa</h3>
-                <p className="text-sm text-gray-400 leading-relaxed font-medium">Storage Anda aman. Semua data akan dihapus mandiri dari server tanpa sisa dalam durasi 30 menit otomatis (Ephemeral).</p>
+                <h3 className="text-xl font-black uppercase mb-3">Tanpa Sisa</h3>
+                <p className="text-sm font-bold leading-snug">Semua data dihapus otomatis dari server dalam 30 menit. Tidak ada jejak yang tertinggal.</p>
               </div>
             </div>
 
             {/* CARA KERJA (How it works) */}
-            <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl">
-               <div className="text-center mb-10">
-                 <h2 className="text-3xl font-bold text-white mb-2">3 Langkah Penggunaan</h2>
-                 <p className="text-gray-400">Langsung bisa kirim ke teman tanpa babibu lagi.</p>
+            <div className="neo-card p-8 md:p-12 bg-white relative overflow-hidden">
+               <div className="neo-bg-dots absolute inset-0 opacity-10 pointer-events-none" />
+               <div className="text-center mb-12 relative z-10">
+                 <h2 className="text-4xl font-black uppercase tracking-tighter mb-2">3 Langkah Mudah</h2>
+                 <p className="font-bold">Langsung bisa kirim ke teman tanpa babibu lagi.</p>
                </div>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative items-start">
-                  <div className="text-center">
-                    <div className="w-14 h-14 bg-white/10 text-white font-bold flex items-center justify-center rounded-full mx-auto mb-6 text-xl border border-white/20">1</div>
-                    <h4 className="font-bold mb-2 text-lg">Lempar File</h4>
-                    <p className="text-sm text-gray-400 leading-relaxed">Taruh file rahasiamu. Beri Gembok PIN atau Kunci E2EE bila dirasa perlu mengamankannya.</p>
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10 items-start">
+                  <div className="text-center group">
+                    <div className="w-16 h-16 bg-neo-yellow text-black font-black flex items-center justify-center border-4 border-black mx-auto mb-6 text-2xl shadow-neo group-hover:-translate-y-1 transition-transform">1</div>
+                    <h4 className="font-black uppercase mb-2 text-xl">Lempar File</h4>
+                    <p className="text-sm font-bold leading-tight">Taruh file rahasiamu. Beri Gembok PIN atau Kunci E2EE bila perlu mengamankannya.</p>
                   </div>
-                  <div className="text-center">
-                    <div className="w-14 h-14 bg-white/10 text-white font-bold flex items-center justify-center rounded-full mx-auto mb-6 text-xl border border-white/20">2</div>
-                    <h4 className="font-bold mb-2 text-lg">Bagikan Akses</h4>
-                    <p className="text-sm text-gray-400 leading-relaxed">QR Code akan langsung terbentuk. Berikan ini di depan layar atau salin tautannya ya.</p>
+                  <div className="text-center group">
+                    <div className="w-16 h-16 bg-neo-pink text-white font-black flex items-center justify-center border-4 border-black mx-auto mb-6 text-2xl shadow-neo group-hover:-translate-y-1 transition-transform">2</div>
+                    <h4 className="font-black uppercase mb-2 text-xl">Bagi Akses</h4>
+                    <p className="text-sm font-bold leading-tight">QR Code akan langsung terbentuk. Berikan ini di depan layar atau salin tautannya ya.</p>
                   </div>
-                  <div className="text-center">
-                    <div className="w-14 h-14 bg-indigo-600 text-white font-bold flex items-center justify-center rounded-full mx-auto mb-6 text-xl shadow-[0_0_30px_rgba(79,70,229,0.5)] border border-indigo-400">3</div>
-                    <h4 className="font-bold mb-2 text-lg">Terima Data!</h4>
-                    <p className="text-sm text-gray-400 leading-relaxed">Tinggal klik unduh, dan boom! Datanya pindah sekejap tanpa singgah lama.</p>
+                  <div className="text-center group">
+                    <div className="w-16 h-16 bg-neo-green text-black font-black flex items-center justify-center border-4 border-black mx-auto mb-6 text-2xl shadow-neo group-hover:-translate-y-1 transition-transform">3</div>
+                    <h4 className="font-black uppercase mb-2 text-xl">Terima Data!</h4>
+                    <p className="text-sm font-bold leading-tight">Tinggal klik unduh di perangkat tujuan, dan boom! Datanya pindah sekejap.</p>
                   </div>
                </div>
             </div>
@@ -516,11 +521,15 @@ export default function UploadPage() {
         </section>
       )}
 
-      <footer className="relative z-10 w-full py-8 text-center text-xs font-semibold text-gray-500 border-t border-white/5 bg-black/40">
-         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
-           <p>© {new Date().getFullYear()} RafQR Data Bridge. Oleh RaffiTech Labs.</p>
-           <span className="hidden sm:block w-1 h-1 bg-gray-600 rounded-full" />
-           <p className="cursor-pointer hover:text-white transition-colors">Dibuat dengan ❤️ dari Indonesia</p>
+      <footer className="relative z-10 w-full py-12 text-center border-t-4 border-black bg-white">
+         <div className="flex flex-col items-center justify-center gap-6">
+           <div className="flex gap-4">
+             <div className="w-8 h-8 bg-neo-yellow border-2 border-black" />
+             <div className="w-8 h-8 bg-neo-green border-2 border-black" />
+             <div className="w-8 h-8 bg-neo-pink border-2 border-black" />
+           </div>
+           <p className="text-xs font-black uppercase tracking-widest">© {new Date().getFullYear()} RafQR Data Bridge. Oleh RaffiTech Labs.</p>
+           <p className="text-[10px] font-black uppercase bg-black text-white px-2 py-1 rotate-1">Dibuat dengan ❤️ dari Indonesia</p>
          </div>
       </footer>
     </div>

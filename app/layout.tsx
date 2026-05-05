@@ -9,7 +9,7 @@ const outfitFont = Outfit({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#030712",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -78,7 +78,6 @@ export default function RootLayout({
   return (
     <html lang="id" className={outfitFont.variable}>
       <body className={`${outfitFont.className} font-sans`}>
-        <div className="mesh-blob" />
         {/* SVG Noise filter removed for massive performance boost */}
         <noscript>
           <div style={{ padding: "20px", textAlign: "center", color: "white", background: "#030712" }}>
