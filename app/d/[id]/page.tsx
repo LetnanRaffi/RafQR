@@ -88,6 +88,17 @@ export default function DownloadPage() {
       });
   }, [id]);
 
+  useEffect(() => {
+    if (session?.files && !isLocked && (!isEncrypted || isDecrypted)) {
+       session.files.forEach(file => {
+          const ext = file.fileName.split('.').pop()?.toLowerCase() || '';
+          if (['png','jpg','jpeg','gif','webp','svg'].includes(ext) && !previews[file.fileName]) {
+             previewFile(file.firebaseUrl, file.fileName);
+          }
+       });
+    }
+  }, [session, isLocked, isEncrypted, isDecrypted]);
+
   const notifyPC = async () => {
     if (isNotified) return;
     try {
