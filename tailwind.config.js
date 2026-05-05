@@ -63,6 +63,15 @@ module.exports = {
         'xl': '1280px',
         '2xl': '1536px',
       },
+      keyframes: {
+        marquee: {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-100%)' },
+        }
+      },
+      animation: {
+        marquee: 'marquee 40s linear infinite',
+      },
     },
   },
   plugins: [],

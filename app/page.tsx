@@ -226,7 +226,12 @@ export default function UploadPage() {
         {step === 'input' && (
           <div className="w-full flex justify-center animate-fade-in flex-col items-center">
             {/* HERO */}
-            <div className="text-center mb-12 flex flex-col items-center">
+            <div className="text-center mb-12 flex flex-col items-center relative">
+               {/* Floating elements */}
+               <div className="absolute -top-10 -left-10 w-20 h-20 bg-neo-pink/10 border-4 border-black rotate-12 -z-10 hidden md:block" />
+               <div className="absolute top-20 -right-20 w-16 h-16 bg-neo-green/10 border-4 border-black rounded-full -rotate-12 -z-10 hidden md:block" />
+               <div className="absolute -bottom-10 right-20 w-24 h-12 bg-neo-blue/10 border-4 border-black -rotate-6 -z-10 hidden md:block" />
+
                <h2 className="text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter mb-4 sm:mb-6 leading-none uppercase">
                   Jembatan <br className="sm:hidden" />
                   <span className="bg-neo-yellow px-4 border-4 border-black shadow-neo inline-block rotate-[-1deg]">
@@ -236,6 +241,46 @@ export default function UploadPage() {
                <p className="text-lg sm:text-xl text-black max-w-xl mx-auto font-bold leading-tight mt-4">
                   Transfer file & teks antar perangkat layaknya teleportasi. <span className="bg-neo-green px-1">Nol instalasi, nol akun, privasi absolut.</span>
                </p>
+               
+               {/* Live pulses decoration */}
+               <div className="flex gap-4 mt-8">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-neo-green border-2 border-black animate-ping" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Server Siaga</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-neo-pink border-2 border-black animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">E2EE Aktif</span>
+                  </div>
+               </div>
+            </div>
+
+            {/* MARQUEE */}
+            <div className="w-full bg-black py-4 border-y-4 border-black overflow-hidden flex whitespace-nowrap -rotate-1 mb-16 relative z-10">
+              <div className="animate-marquee flex items-center shrink-0">
+                {[...Array(6)].map((_, i) => (
+                  <span key={i} className="text-white text-2xl font-black uppercase mx-12 flex items-center gap-6">
+                    <div className="w-4 h-4 bg-neo-yellow rotate-45" />
+                    Seamless Data Bridge
+                    <div className="w-4 h-4 bg-neo-green rotate-45" />
+                    Zero Trace
+                    <div className="w-4 h-4 bg-neo-pink rotate-45" />
+                    End-to-End Encrypted
+                  </span>
+                ))}
+              </div>
+              <div className="animate-marquee flex items-center shrink-0">
+                {[...Array(6)].map((_, i) => (
+                  <span key={i} className="text-white text-2xl font-black uppercase mx-12 flex items-center gap-6">
+                    <div className="w-4 h-4 bg-neo-yellow rotate-45" />
+                    Seamless Data Bridge
+                    <div className="w-4 h-4 bg-neo-green rotate-45" />
+                    Zero Trace
+                    <div className="w-4 h-4 bg-neo-pink rotate-45" />
+                    End-to-End Encrypted
+                  </span>
+                ))}
+              </div>
             </div>
 
             <div className="neo-card w-full max-w-2xl p-4 flex flex-col mb-12 bg-neo-blue/5">
@@ -423,6 +468,21 @@ export default function UploadPage() {
                  </div>
               </div>
             )}
+             {/* STATS SECTION */}
+             <div className="w-full flex justify-center mt-12 mb-20 gap-8 flex-wrap">
+                <div className="flex flex-col items-center bg-white border-4 border-black p-4 shadow-neo hover:-translate-y-1 transition-transform cursor-default">
+                   <span className="text-4xl font-black">1.2M+</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-black/50">Files Shared</span>
+                </div>
+                <div className="flex flex-col items-center bg-white border-4 border-black p-4 shadow-neo hover:-translate-y-1 transition-transform cursor-default rotate-2">
+                   <span className="text-4xl font-black">100%</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-black/50">Trace Purged</span>
+                </div>
+                <div className="flex flex-col items-center bg-white border-4 border-black p-4 shadow-neo hover:-translate-y-1 transition-transform cursor-default -rotate-1">
+                   <span className="text-4xl font-black text-neo-blue">AES-256</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-black/50">Military Grade</span>
+                </div>
+             </div>
           </div>
         )}
 

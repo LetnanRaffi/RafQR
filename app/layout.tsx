@@ -18,11 +18,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://qr.raffitech.biz.id"),
   title: {
-    default: "RafQR — Seamless & Instant Secure Data Transfer",
+    default: "RafQR — Jembatan Transfer File & Teks Paling Kilat & Aman",
     template: "%s | RafQR",
   },
-  description: "Kirim file dan teks secara instan antar perangkat dengan End-to-End Encryption. Tanpa login, tanpa jejak, maksimal keamanan dengan RafQR Data Bridge buatan RaffiTech Labs.",
-  keywords: ["file sharing", "kirim file", "secure file transfer", "end to end encryption", "file sharing instan", "rafqr", "qr file transfer", "raffitech", "transfer file aman"],
+  description: "Kirim file rahasia & teks antar perangkat tanpa instal apapun. RafQR adalah jembatan data tercepat dengan pengaman AES-256 E2EE. Tanpa akun, tanpa jejak, otomatis hancur dalam 30 menit.",
+  keywords: ["transfer file kilat", "kirim file tanpa login", "sharing file aman", "jembatan data qr", "rafqr data transfer", "e2ee file sharing", "pindah data hp ke laptop", "alat transfer file gratis", "secure tunnel data"],
   authors: [{ name: "LetnanRaffi", url: "https://raffitech.biz.id" }],
   creator: "LetnanRaffi",
   publisher: "RaffiTech Labs",
