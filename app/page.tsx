@@ -325,14 +325,14 @@ export default function UploadPage() {
                    <div className="space-y-3">
                      {e2eeEnabled && (
                        <div className="relative">
-                         <input disabled={isUploading} value={encryptionKey} onChange={(e) => setEncryptionKey(e.target.value)} placeholder="Ketik minimal 6 huruf untuk Kunci E2EE" className="w-full bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-4 text-sm focus:outline-none focus:border-indigo-500 transition-colors pr-12" />
-                         <button onClick={generateSecureKey} className="absolute right-3 top-3.5 p-1.5 bg-indigo-500/20 hover:bg-indigo-500/40 rounded-lg text-indigo-300" title="Auto-Generate Key"><DiceIcon /></button>
+                          <input disabled={isUploading} value={encryptionKey} onChange={(e) => setEncryptionKey(e.target.value)} placeholder="Kunci Sensesi E2EE (Min 6)" className="neo-input bg-neo-green/10 pr-12 font-black uppercase text-xs tracking-widest" />
+                          <button onClick={generateSecureKey} className="absolute right-3 top-2 p-2 hover:bg-black hover:text-white transition-all text-black" title="Auto-Generate Key"><DiceIcon /></button>
                        </div>
                      )}
                      {pinMode && (
                        <div className="relative">
-                         <input disabled={isUploading} type="password" value={pinCode} onChange={(e) => setPinCode(e.target.value.slice(0, 4))} placeholder="Buat angka 4-digit PIN..." className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:border-white/30 transition-colors tracking-widest pr-12" />
-                         <button onClick={generateSecurePin} className="absolute right-3 top-3.5 p-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-gray-300" title="Auto-Generate PIN"><DiceIcon /></button>
+                          <input disabled={isUploading} type="password" value={pinCode} onChange={(e) => setPinCode(e.target.value.slice(0, 4))} placeholder="Gembok PIN 4-digit..." className="neo-input bg-neo-yellow/10 pr-12 font-black tracking-[1em] text-center" />
+                          <button onClick={generateSecurePin} className="absolute right-3 top-2 p-2 hover:bg-black hover:text-white transition-all text-black" title="Auto-Generate PIN"><DiceIcon /></button>
                        </div>
                      )}
                    </div>
@@ -353,7 +353,7 @@ export default function UploadPage() {
                             </div>
                          </div>
                       )}
-                      {error && <p className="text-center text-xs font-medium text-red-400 mt-4">{error}</p>}
+                      {error && <p className="text-center text-[10px] font-black text-neo-pink uppercase mt-4 italic bg-black/5 p-2 border-2 border-black border-dashed">!! {error} !!</p>}
                    </div>
                 </div>
               ) : (

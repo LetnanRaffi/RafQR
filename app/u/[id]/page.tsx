@@ -97,43 +97,56 @@ export default function MobileUploaderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-white selection:bg-indigo-500/30 selection:text-white font-sans flex flex-col p-6 sm:p-10">
-      <header className="flex items-center gap-3 mb-10 w-full max-w-2xl mx-auto animate-slide-down">
-        <Logo size={28} />
-        <h1 className="text-xl font-bold tracking-tight">RafQR Kirim File</h1>
+    <div className="min-h-screen bg-white text-black font-sans flex flex-col p-6 sm:p-10 relative overflow-hidden selection:bg-neo-yellow selection:text-black">
+      {/* BACKGROUND DECO */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, black 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+
+      <header className="flex items-center justify-between mb-12 w-full max-w-2xl mx-auto relative z-10">
+        <button onClick={() => router.push('/')} className="flex items-center gap-4 hover:-rotate-2 transition-transform">
+           <div className="bg-black p-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]">
+              <Logo size={24} color="white" />
+           </div>
+           <h1 className="text-2xl font-black tracking-tighter uppercase">RafQR</h1>
+        </button>
+        <div className="bg-neo-pink text-white px-3 py-1 border-4 border-black text-xs font-black uppercase rotate-3 shadow-neo">
+          Direct Push
+        </div>
       </header>
 
       <main className="max-w-2xl mx-auto w-full space-y-8 animate-fade-in pb-32">
-        <div className="space-y-2">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">Transfer Mandiri</h2>
-          <p className="text-sm font-medium text-gray-400">Terhubung menuju Sesi: <span className="font-mono text-indigo-400">{id}</span></p>
+        <div className="space-y-3 relative">
+          <div className="absolute -top-8 -left-4 text-7xl font-black text-neo-blue/20 pointer-events-none -z-10 select-none">PUSH</div>
+          <h2 className="text-5xl font-black tracking-tighter uppercase leading-none">Kirim <span className="bg-neo-yellow px-2 border-4 border-black inline-block -rotate-1">Mandiri</span></h2>
+          <p className="text-sm font-black uppercase tracking-widest text-black/40">Terhubung Sesi: <span className="text-black bg-neo-green px-1">{id}</span></p>
         </div>
 
-        <div className="glass-panel p-2 flex flex-col mb-8">
-          <div className="px-4 py-4 sm:p-6 space-y-6">
+        <div className="neo-card p-0 bg-white overflow-hidden flex flex-col">
+          <div className="px-6 py-8 space-y-8">
             <div 
-              className="p-8 pb-10 border-2 border-dashed border-white/10 hover:border-indigo-500/50 bg-white/[0.02] hover:bg-white/[0.05] cursor-pointer rounded-2xl text-center transition-all flex flex-col items-center justify-center gap-2"
-              onClick={() => fileInputRef.current?.click()}
+              className="p-10 border-4 border-dashed border-black hover:bg-neo-green/10 cursor-pointer transition-all flex flex-col items-center justify-center gap-4 text-center group"
+              onClick={() => !isUploading && fileInputRef.current?.click()}
             >
-              <div className="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-2">
+              <div className="w-16 h-16 bg-black text-neo-green flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_0px_rgba(163,230,53,1)] group-hover:scale-110 transition-transform">
                 <UploadCloudIcon />
               </div>
-              <p className="font-semibold text-base sm:text-lg">Tahan atau Pilih Dokumen</p>
-              <p className="text-xs text-gray-500 font-medium mb-3">Maksimal 50MB per file</p>
-              <div className="bg-white/10 hover:bg-white/20 px-6 py-2.5 rounded-full text-xs font-semibold backdrop-blur-sm transition-colors border border-white/10 text-white shadow-lg">Cari File</div>
+              <div>
+                <p className="font-black text-2xl uppercase tracking-tighter">Pilih Dokumen</p>
+                <p className="text-xs font-bold text-black/60 uppercase mt-1">Maksimal 50MB / File</p>
+              </div>
+              <div className="neo-btn bg-white text-xs px-8 py-3">CARI FILE</div>
               <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => setSelectedFiles(p => [...p, ...Array.from(e.target.files || [])])} />
             </div>
 
             {selectedFiles.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                 {selectedFiles.map((f, i) => (
-                  <div key={i} className="aspect-square border border-white/10 bg-white/5 rounded-xl relative group overflow-hidden flex flex-col items-center justify-center">
+                  <div key={i} className="aspect-square border-4 border-black bg-white relative group overflow-hidden flex flex-col items-center justify-center shadow-neo-hover">
                     {previews[`${f.name}-${f.lastModified}`] ? (
-                      <img src={previews[`${f.name}-${f.lastModified}`]} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                      <img src={previews[`${f.name}-${f.lastModified}`]} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                     ) : (
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{getFileExt(f.name)}</span>
+                      <span className="text-xs font-black text-black uppercase tracking-widest">{getFileExt(f.name)}</span>
                     )}
-                    <button onClick={(e) => { e.stopPropagation(); setSelectedFiles(p => p.filter((_, idx) => idx !== i)); }} className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm"><XIcon /></button>
+                    <button onClick={(e) => { e.stopPropagation(); setSelectedFiles(p => p.filter((_, idx) => idx !== i)); }} className="absolute inset-0 bg-neo-pink/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><XIcon /></button>
                   </div>
                 ))}
               </div>
@@ -142,29 +155,29 @@ export default function MobileUploaderPage() {
             <textarea 
               value={textContent} 
               onChange={(e) => setTextContent(e.target.value)} 
-              placeholder="Tambahkan pesan teks jika Anda mau..." 
-              className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-5 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all resize-none placeholder-gray-500" 
+              placeholder="PESAN TEKS (OPSIONAL)..." 
+              className="w-full h-40 neo-input bg-white p-6 text-sm font-bold uppercase transition-all resize-none placeholder-black/30" 
             />
           </div>
         </div>
 
         <div className="pt-2">
           {!isUploading ? (
-            <button onClick={handleUpload} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold tracking-wide transition-all shadow-[0_0_30px_-10px_rgba(79,70,229,0.5)]">
-              Kirim ke Jembatan PC
+            <button onClick={handleUpload} className="w-full neo-btn bg-black text-white hover:bg-neo-green hover:text-black py-4 text-2xl">
+              KIRIM KE JEMBATAN
             </button>
           ) : (
-            <div className="space-y-3 bg-white/5 p-5 rounded-xl border border-white/10">
-              <div className="flex justify-between text-xs font-medium text-gray-400">
-                <span>Mengirim Paket...</span>
+            <div className="space-y-4 bg-black text-white p-6 border-4 border-black shadow-neo">
+              <div className="flex justify-between text-xs font-black uppercase tracking-widest">
+                <span>PENGIRIMAN PAKET...</span>
                 <span>{progress}%</span>
               </div>
-              <div className="h-1.5 bg-white/10 rounded-full w-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+              <div className="h-6 bg-white border-2 border-white w-full overflow-hidden">
+                <div className="h-full bg-neo-green transition-all duration-300 shadow-[inset_-4px_0px_0px_0px_rgba(0,0,0,1)]" style={{ width: `${progress}%` }} />
               </div>
             </div>
           )}
-          {error && <p className="text-center text-xs font-medium text-red-400 mt-4">{error}</p>}
+          {error && <p className="text-center text-xs font-black text-neo-pink bg-black text-white p-3 border-4 border-black uppercase mt-8 animate-pulse rotate-1">!! {error} !!</p>}
         </div>
       </main>
     </div>
