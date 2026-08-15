@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, JetBrains_Mono } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ToastHost } from "../components/toast";
 
@@ -7,12 +7,6 @@ const outfitFont = Outfit({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-outfit",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-jetbrains",
 });
 
 export const viewport: Viewport = {
@@ -82,7 +76,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${outfitFont.variable} ${jetbrainsMono.variable}`}>
+    <html lang="id" className={outfitFont.variable}>
       <body className={`${outfitFont.className} font-sans`}>
         {/* SVG Noise filter removed for massive performance boost */}
         <noscript>

@@ -9,7 +9,7 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-jetbrains)', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       colors: {
         // Base neutrals
