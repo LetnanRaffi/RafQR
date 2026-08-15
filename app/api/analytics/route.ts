@@ -1,11 +1,22 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimit } from '../../../lib/redis';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+const getIp = (req: Request): string =>
+  req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown';
+
 export async function POST(request: Request) {
   try {
+    // Rate limit tracking writes: 60 / minute / IP
+    if (!(await rateLimit(`analytics:${getIp(request)}`, 60, 60))) {
+      return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
+    }
+
     const { type, fileId, fileSize, fileName } = await request.json();
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const today = new Date().toISOString().split('T')[0];
@@ -36,10 +47,30 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Admin-only: compare against a server-side secret (never NEXT_PUBLIC_).
+    const adminSecret = process.env.ADMIN_SECRET;
+    const provided = request.headers.get('x-admin-key');
+    if (!adminSecret || provided !== adminSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
+
+    // Preferred: aggregate in SQL (bounded memory, scales with data volume).
+    const { data: overview, error: rpcErr } = await supabase.rpc('get_analytics_overview');
+    if (!rpcErr && overview) {
+      return NextResponse.json({
+        totalTransfers: overview.totalTransfers || 0,
+        totalGb: (Number(overview.totalSizeBytes || 0) / (1024 * 1024 * 1024)).toFixed(3),
+        largestFile: overview.largestFile || { file_size: 0, file_name: 'None' },
+        chartData: overview.chartData || [],
+        totalVisitors: overview.totalVisitors || 0,
+      });
+    }
+
+    // Fallback (RPC not installed): compute in-app.
     // 1. Fetch all transfers
     const { data: allTransfers } = await supabase
       .from('analytics_transfers')

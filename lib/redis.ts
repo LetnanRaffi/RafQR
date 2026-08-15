@@ -27,7 +27,6 @@ export interface FileSession {
   ghost?: boolean;      // Self-destruct after first scan
   pin?: string;         // Password protection
   isDownloaded?: boolean; // Tracking for PC notifications
-  broadcast?: boolean;  // Allow multiple downloads
   e2ee?: boolean;       // v3.5 E2EE
 }
 
@@ -59,6 +58,36 @@ export const getSessionTTL = async (uniqueId: string): Promise<number> => {
 export const deleteFileSession = async (uniqueId: string): Promise<void> => {
   const key = `file:${uniqueId}`;
   await redis.del(key);
+};
+
+// Atomic "claim" of a session id. Returns false if the id is already taken.
+export const claimFileSession = async (
+  uniqueId: string,
+  sessionData: FileSession,
+  ttlSeconds: number = 1800,
+): Promise<boolean> => {
+  const key = `file:${uniqueId}`;
+  const res = await redis.set(key, sessionData, { ex: ttlSeconds, nx: true });
+  return res === 'OK';
+};
+
+/**
+ * Fixed-window rate limiter backed by Redis. Returns true when allowed.
+ * Fails open (allowed) if Redis errors, to avoid blocking legit traffic.
+ */
+export const rateLimit = async (
+  bucket: string,
+  limit: number,
+  windowSeconds: number,
+): Promise<boolean> => {
+  try {
+    const key = `rl:${bucket}`;
+    const count = await redis.incr(key);
+    if (count === 1) await redis.expire(key, windowSeconds);
+    return count <= limit;
+  } catch {
+    return true;
+  }
 };
 
 export { redis };

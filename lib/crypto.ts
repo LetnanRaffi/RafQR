@@ -4,7 +4,7 @@
 
 const ALGORITHM = 'AES-GCM';
 const KEY_LEN = 256;
-const ITERATIONS = 100000;
+const ITERATIONS = 600000; // OWASP 2023 guidance for PBKDF2-SHA256
 
 const getEncoder = () => new TextEncoder();
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Logo } from '../../components/Logo';
+import { toast } from '../../components/toast';
 
 interface AnalyticsData {
   totalTransfers: number;
@@ -27,24 +28,21 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [pin, setPin] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
-  // Set PIN securely in your .env or here
-  const ADMIN_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN || 'admin123';
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    fetch('/api/analytics')
-      .then(res => res.json())
-      .then(d => {
-        setData(d);
-        setLoading(false);
-      });
-  }, [isAuthenticated]);
-
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin === ADMIN_PIN) setIsAuthenticated(true);
-    else alert('Invalid PIN');
+    try {
+      const res = await fetch('/api/analytics', { headers: { 'x-admin-key': pin } });
+      if (!res.ok) {
+        toast('Akses ditolak.', 'error');
+        return;
+      }
+      setData(await res.json());
+      setLoading(false);
+      setIsAuthenticated(true);
+    } catch {
+      toast('Gagal terhubung.', 'error');
+    }
   };
 
   if (!isAuthenticated) {
@@ -57,12 +55,11 @@ export default function AdminDashboard() {
             type="password" 
             value={pin} 
             onChange={(e) => setPin(e.target.value)}
-            placeholder="Enter Admin PIN" 
+            placeholder="Enter Admin Key" 
             className="w-full bg-white/5 border border-white/10 p-4 font-black text-center focus:outline-none focus:border-white transition-all"
             autoFocus
           />
           <button type="submit" className="w-full bg-white text-black font-black uppercase py-4 tracking-widest hover:bg-white/90">Verify Identity</button>
-          {!process.env.NEXT_PUBLIC_ADMIN_PIN && <p className="text-[10px] text-center opacity-20 uppercase font-black tracking-widest mt-4 italic">Note: Use default PIN 'admin123' if not set in .env</p>}
         </form>
       </div>
     );
