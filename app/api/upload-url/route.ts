@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { presignPut, isR2Configured } from '../../../lib/r2';
 import { rateLimit } from '../../../lib/redis';
-
-const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50 MB/file
+import { MAX_FILE_BYTES, formatLimit } from '../../../lib/limits';
 
 const getIp = (req: NextRequest): string =>
   req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
@@ -24,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const { fileName, contentType, fileSize } = await request.json();
     if (Number(fileSize) > MAX_FILE_BYTES) {
-      return NextResponse.json({ error: 'File melebihi batas 50 MB.' }, { status: 413 });
+      return NextResponse.json({ error: `File melebihi batas ${formatLimit(MAX_FILE_BYTES)}.` }, { status: 413 });
     }
 
     const safeName = String(fileName || 'blob').replace(/[^a-zA-Z0-9.-]/g, '_').slice(0, 100);

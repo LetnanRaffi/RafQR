@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createFileSession, claimFileSession, getFileSession, getSessionTTL, deleteFileSession, rateLimit, type FileSession, type SessionFile, redis } from '../../../lib/redis';
 import { withSignedUrls, removeStorageObjects, isValidKey } from '../../../lib/r2';
+import { MAX_FILE_BYTES, MAX_TOTAL_BYTES, formatLimit } from '../../../lib/limits';
 import { nanoid } from 'nanoid';
-
-const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50 MB/file (matches UI)
-const MAX_TOTAL_BYTES = 250 * 1024 * 1024; // 250 MB/session
 
 const getIp = (req: NextRequest): string =>
   req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
@@ -20,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { files, textContent, id: existingId, ghost, pin, e2ee } = body;
+    const { files, textContent, id: existingId, pin, e2ee } = body;
 
     // Validate
     if ((!files || !Array.isArray(files) || files.length === 0) && !textContent) {
@@ -35,16 +33,16 @@ export async function POST(request: NextRequest) {
       for (const f of files) {
         const size = Number(f?.fileSize) || 0;
         if (size > MAX_FILE_BYTES) {
-          return NextResponse.json({ error: 'File melebihi batas 50 MB.' }, { status: 413 });
+          return NextResponse.json({ error: `File "${String(f?.fileName || '')}" melebihi batas ${formatLimit(MAX_FILE_BYTES)}.` }, { status: 413 });
         }
         running += size;
         if (!isValidKey(f?.storageRef)) {
           return NextResponse.json({ error: 'Referensi file tidak valid.' }, { status: 400 });
         }
       }
-      if (running > MAX_TOTAL_BYTES) {
-        return NextResponse.json({ error: 'Total ukuran melebihi batas.' }, { status: 413 });
-      }
+if (running > MAX_TOTAL_BYTES) {
+          return NextResponse.json({ error: `Total ukuran sesi melebihi batas ${formatLimit(MAX_TOTAL_BYTES)}.` }, { status: 413 });
+        }
     }
 
     // Build session
@@ -65,7 +63,6 @@ export async function POST(request: NextRequest) {
       createdAt: Date.now(),
       totalSize: totalFileSize + textSize,
       fileCount: sessionFiles.length,
-      ghost: ghost || false,
       pin: pin || undefined,
       e2ee: e2ee || false,
       isDownloaded: false,
@@ -163,13 +160,6 @@ export async function PATCH(request: NextRequest) {
     sessionData.isDownloaded = true;
     await redis.set(`file:${id}`, sessionData, { keepTtl: true });
 
-    // Handle Ghost Mode: Delete session instantly after first access
-    if (sessionData.ghost) {
-      await removeStorageObjects(sessionData.files); // purge blobs too
-      await deleteFileSession(id);
-      return NextResponse.json({ success: true, message: 'GHOST_MODE_ACTIVATED: Session purged.' });
-    }
-
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
@@ -177,10 +167,20 @@ export async function PATCH(request: NextRequest) {
 }
 
 // DELETE ...
+// `?id=` drops a whole session. Body-only (no id) purges just the given
+// storageRefs — used to roll back blobs uploaded before a session POST failed.
 export async function DELETE(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id');
-    if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+    const body = await request.json().catch(() => ({}));
+    const orphanRefs: string[] = Array.isArray(body?.storageRefs) ? body.storageRefs.filter(isValidKey) : [];
+    if (orphanRefs.length > 0) {
+      await removeStorageObjects(orphanRefs.map((storageRef) => ({ storageRef })));
+    }
+    if (!id) {
+      if (orphanRefs.length === 0) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+      return NextResponse.json({ success: true });
+    }
     const sessionData = await getFileSession(id);
     if (sessionData) await removeStorageObjects(sessionData.files);
     await deleteFileSession(id);

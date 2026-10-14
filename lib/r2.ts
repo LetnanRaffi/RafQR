@@ -11,7 +11,10 @@ const accessKeyId = (process.env.R2_ACCESS_KEY_ID || '').trim();
 const secretAccessKey = (process.env.R2_SECRET_ACCESS_KEY || '').trim();
 export const R2_BUCKET = (process.env.R2_BUCKET || 'rafqr').trim();
 
-const PUT_TTL = 300; // 5 min window to complete an upload
+// The browser uploads straight to R2 with this URL, so it has to outlive the
+// whole transfer — a 2 GB file on mobile data can take well over an hour.
+// R2 accepts presigned URLs for up to 7 days.
+const PUT_TTL = 3600; // 1 hour to complete the upload
 export const GET_TTL = 1800; // 30 min download, matches session TTL
 
 let _client: S3Client | null = null;
@@ -74,7 +77,7 @@ export async function withSignedUrls<T extends { storageRef?: string; firebaseUr
   );
 }
 
-/** Best-effort removal of blobs (ghost mode / explicit delete). */
+/** Best-effort removal of blobs (explicit session delete). */
 export async function removeStorageObjects(files: { storageRef?: string }[] | undefined): Promise<void> {
   const c = client();
   if (!c || !files || files.length === 0) return;

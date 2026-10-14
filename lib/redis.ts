@@ -24,7 +24,6 @@ export interface FileSession {
   fileCount: number;
   
   // New Features v3.0
-  ghost?: boolean;      // Self-destruct after first scan
   pin?: string;         // Password protection
   isDownloaded?: boolean; // Tracking for PC notifications
   e2ee?: boolean;       // v3.5 E2EE
