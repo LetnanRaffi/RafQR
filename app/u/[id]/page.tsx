@@ -6,6 +6,7 @@ import { uploadFileToR2 } from '../../../lib/r2-client';
 import SiteFooter from '../../../components/Footer';
 import { toast } from '../../../components/toast';
 import { formatSize } from '../../../lib/format';
+import { useFilePreviews, fileKey } from '../../../lib/preview';
 import { MAX_FILE_BYTES, purgeUploads, trackTransfer } from '../../../lib/session';
 import { formatLimit } from '../../../lib/limits';
 import { AppShell, TopBar, Btn, Dropzone, FileRow, FileRow as Row } from '../../../components/ui';
@@ -27,6 +28,8 @@ export default function MobileUploadPage() {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const previews = useFilePreviews(files);
 
   const totalSize = files.reduce((s, f) => s + f.size, 0);
 
@@ -156,7 +159,7 @@ export default function MobileUploadPage() {
                 <Row
                   key={`${f.name}-${i}`}
                   name={f.name}
-                  thumb={f.type.startsWith('image/') ? <span className="img"><img src={URL.createObjectURL(f)} alt="" /></span> : undefined}
+                  thumb={f.type.startsWith('image/') && previews[fileKey(f)] ? <span className="img"><img src={previews[fileKey(f)]} alt="" /></span> : undefined}
                   meta={`${formatSize(f.size)} · ${uploading && current === f.name ? 'mengirim' : 'siap'}`}
                   actions={
                     uploading ? undefined : (

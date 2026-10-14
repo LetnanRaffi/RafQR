@@ -291,6 +291,32 @@ textarea.inp { min-height: 92px; resize: none; line-height: 1.55; }
   .dock { position: static; padding: 0; border: 0; background: none; backdrop-filter: none; }
 }
 
+/* ── scan: camera + side panel on desktop (mockup §6.6) ─────────── */
+.camwrap { display: grid; gap: 16px; width: 100%; }
+@media (min-width: 760px) {
+  .camwrap { grid-template-columns: minmax(0, 1fr) 300px; align-items: start; }
+}
+
+/* ── desktop refinements ────────────────────────────────────────── */
+/* Rows that are clickable need to look clickable. */
+button.lrow { cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .12s; cursor: pointer; }
+button.lrow:hover { border-color: var(--line2); box-shadow: var(--sh-m); transform: translateY(-1px); }
+button.lrow:active { transform: none; }
+
+/* On a pointer device the dock can sit inline instead of a separate bar. */
+@media (min-width: 620px) {
+  .page.narrow { max-width: 620px; }
+  /* Roomier lightbox stage so a photo is not letterboxed into a strip. */
+  .lb-stage { padding: 24px 40px; }
+  .lb-foot { max-width: 520px; margin: 0 auto; width: 100%; }
+  .lb-nav { padding-bottom: 10px; }
+}
+
+/* Keyboard users get a visible affordance that pointer users do not need. */
+@media (hover: none) {
+  .btn.icon { min-height: 44px; width: 44px; }
+}
+
 /* ── progress ───────────────────────────────────────────────────── */
 .progline { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
 .progline i { display: block; height: 100%; background: var(--ink); border-radius: 99px; transition: width .25s; }

@@ -15,6 +15,7 @@ import {
 } from '../../../components/icons';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { canShareFiles, saveOrShare } from '../../../lib/download';
 
 interface SessionFile { fileName: string; fileSize: number; fileType: string; firebaseUrl: string; storageRef?: string; }
 interface FileSession {
@@ -25,6 +26,14 @@ interface FileSession {
   fileCount: number;
   pin?: string;
   e2ee?: boolean;
+}
+
+/** Indices to render as dots, centred on `active` and capped for narrow bars. */
+function dotWindow(total: number, active: number, max = 9): number[] {
+  if (total <= max) return Array.from({ length: total }, (_, i) => i);
+  const half = Math.floor((max - 1) / 2);
+  const start = Math.min(Math.max(0, active - half), total - max);
+  return Array.from({ length: max }, (_, i) => start + i);
 }
 
 export default function ReceivePage() {
@@ -44,8 +53,8 @@ export default function ReceivePage() {
   const [isDecrypted, setIsDecrypted] = useState(false);
   const [decryptError, setDecryptError] = useState<string | null>(null);
 
-  const [blobs, setBlobs] = useState<Record<string, string>>({});
-  const [blobUrls, setBlobUrls] = useState<Record<string, string>>({});
+  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const blobUrls = useRef<string[]>([]);
   const [lightbox, setLightbox] = useState<number | null>(null);
 
   const [decryptedText, setDecryptedText] = useState<string | null>(null);
@@ -56,6 +65,9 @@ export default function ReceivePage() {
 
   const [isZipping, setIsZipping] = useState(false);
   const [busyFile, setBusyFile] = useState<string | null>(null);
+  const [shareCapable, setShareCapable] = useState(false);
+
+  useEffect(() => setShareCapable(canShareFiles()), []);
 
   const textKey = `rafqr_text_${id}`;
 
@@ -83,8 +95,31 @@ export default function ReceivePage() {
     if (saved) { setDraft(saved); setDecryptedText(saved); }
   }, [textKey]);
 
-  // Object URLs must be released or a long session leaks memory.
-  useEffect(() => () => { Object.values(blobUrls).forEach((u) => URL.revokeObjectURL(u)); }, [blobUrls]);
+  // Object URLs must be released on unmount or a long session leaks memory.
+  // A ref, not state: a dependency-based cleanup would revoke URLs that are
+  // still on screen in the row that just re-rendered.
+  useEffect(() => () => {
+    blobUrls.current.forEach((u) => URL.revokeObjectURL(u));
+    blobUrls.current = [];
+  }, []);
+
+  // Desktop: Esc closes the lightbox, arrows page through the package.
+  useEffect(() => {
+    if (lightbox === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightbox(null);
+      if (e.key === 'ArrowLeft') setLightbox((v) => Math.max(0, (v ?? 0) - 1));
+      if (e.key === 'ArrowRight') setLightbox((v) => Math.min((session?.files?.length ?? 1) - 1, (v ?? 0) + 1));
+    };
+    // Lock the page behind: on touch, the sheet otherwise scrolls with it.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [lightbox, session?.files?.length]);
 
   const notify = useCallback(async () => {
     try { await fetch(`/api/session?id=${id}`, { method: 'PATCH' }); } catch { /* advisory only */ }
@@ -110,9 +145,13 @@ export default function ReceivePage() {
     if (!session?.files || isLocked || isEncrypted !== isDecrypted) return;
     session.files.forEach((f) => {
       const key = keyOf(f);
-      if (blobs[key] || blobUrls[key]) return;
+      if (previews[key]) return;
       fetchBlob(f.firebaseUrl)
-        .then((blob) => setBlobs((prev) => ({ ...prev, [key]: URL.createObjectURL(blob) })))
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          blobUrls.current.push(url);
+          setPreviews((prev) => (prev[key] ? prev : { ...prev, [key]: url }));
+        })
         .catch(() => { /* a broken preview must not break the list */ });
     });
   }, [session, isLocked, isEncrypted, isDecrypted]);
@@ -157,15 +196,18 @@ export default function ReceivePage() {
     setBusyFile(f.fileName);
     try {
       const blob = await fetchBlob(f.firebaseUrl);
-      if (shareMode && navigator.canShare) {
-        const file = new File([blob], f.fileName, { type: blob.type || 'application/octet-stream' });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: f.fileName, text: 'File dari RafQR' });
-          return;
-        }
+      const fallback = () => {
+        saveAs(blob, f.fileName);
+        toast('Tersimpan.', 'success');
+      };
+      // On a phone, share is the only way out — route every tap through it.
+      if (shareMode || shareCapable) {
+        await saveOrShare(blob, f.fileName, fallback);
+      } else {
+        fallback();
       }
-      saveAs(blob, f.fileName);
     } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return; // user dismissed the sheet
       toast((err as Error).message || 'Gagal menyimpan berkas.', 'error');
     } finally {
       setBusyFile(null);
@@ -182,8 +224,12 @@ export default function ReceivePage() {
     try {
       const zip = new JSZip();
       for (const f of session.files) zip.file(f.fileName, await fetchBlob(f.firebaseUrl));
-      saveAs(await zip.generateAsync({ type: 'blob' }), `rafqr-${id}.zip`);
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const name = `rafqr-${id}.zip`;
+      // Same reason as single files: a zip cannot be saved on iOS via saveAs.
+      await saveOrShare(blob, name, () => { saveAs(blob, name); toast('ZIP tersimpan.', 'success'); });
     } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return;
       toast((err as Error).message || 'Gagal memaketkan ZIP.', 'error');
     } finally {
       setIsZipping(false);
@@ -211,8 +257,10 @@ export default function ReceivePage() {
     const text = draft || decryptedText || session?.textContent;
     if (!text) return;
     const file = new File([text], `rafqr-pesan-${id}.txt`, { type: 'text/plain' });
-    if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: 'Pesan dari RafQR' }).catch(() => {});
-    else copyText();
+    try {
+      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: 'Pesan dari RafQR' });
+      else copyText();
+    } catch { /* user dismissed the share sheet */ }
   };
 
   const saveDraft = () => {
@@ -294,7 +342,7 @@ export default function ReceivePage() {
   const files = session?.files ?? [];
   const zipAllowed = (session?.totalSize || 0) <= MAX_ZIP_BYTES;
   const lbFile = lightbox !== null ? files[lightbox] : null;
-  const canPreview = (f: SessionFile) => !!blobs[keyOf(f)] && !!f.fileType?.startsWith('image/');
+  const canPreview = (f: SessionFile) => !!previews[keyOf(f)] && !!f.fileType?.startsWith('image/');
 
   return (
     <AppShell>
@@ -318,7 +366,7 @@ export default function ReceivePage() {
           {files.length > 0 && (
             zipAllowed ? (
               <Btn size="sm" variant="white" onClick={downloadZip} disabled={isZipping}>
-                <DownloadIcon size={14} /> {isZipping ? 'Mengompres…' : 'Unduh semua'}
+                <DownloadIcon size={14} /> {isZipping ? 'Mengompres…' : shareCapable ? 'Simpan semua' : 'Unduh semua'}
               </Btn>
             ) : (
               <span className="tiny muted">ZIP dilewati · total {formatLimit(session!.totalSize)}</span>
@@ -330,7 +378,7 @@ export default function ReceivePage() {
           <div className="rows">
             {files.map((f, i) => {
               const key = keyOf(f);
-              const preview = blobs[key];
+              const preview = previews[key];
               const thumb = f.fileType?.startsWith('image/') && preview
                 ? <span className="img lg"><img src={preview} alt="" loading="lazy" decoding="async" /></span>
                 : undefined;
@@ -342,14 +390,22 @@ export default function ReceivePage() {
                   thumb={thumb}
                   onOpen={canPreview(f) ? () => setLightbox(i) : undefined}
                   actions={
-                    <>
-                      <Btn size="icon" onClick={() => download(f, true)} aria-label={`Bagikan ${f.fileName}`} disabled={busyFile !== null}>
-                        <ShareIcon size={16} />
+                    shareCapable ? (
+                      <Btn size="icon" onClick={() => download(f)} aria-label={`Simpan ${f.fileName}`} disabled={busyFile !== null}>
+                        {busyFile === f.fileName
+                          ? <span className="spin" style={{ width: 15, height: 15, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                          : <DownloadIcon size={16} />}
                       </Btn>
-                      <Btn size="icon" onClick={() => download(f)} aria-label={`Unduh ${f.fileName}`} disabled={busyFile !== null}>
-                        {busyFile === f.fileName ? <span className="spin" style={{ width: 15, height: 15, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} /> : <DownloadIcon size={16} />}
-                      </Btn>
-                    </>
+                    ) : (
+                      <>
+                        <Btn size="icon" onClick={() => download(f, true)} aria-label={`Bagikan ${f.fileName}`} disabled={busyFile !== null}>
+                          <ShareIcon size={16} />
+                        </Btn>
+                        <Btn size="icon" onClick={() => download(f)} aria-label={`Unduh ${f.fileName}`} disabled={busyFile !== null}>
+                          {busyFile === f.fileName ? <span className="spin" style={{ width: 15, height: 15, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} /> : <DownloadIcon size={16} />}
+                        </Btn>
+                      </>
+                    )
                   }
                 />
               );
@@ -410,12 +466,15 @@ export default function ReceivePage() {
             <span className="badge n">{formatSize(lbFile.fileSize)}</span>
           </div>
           <div className="lb-stage">
-            <img src={blobs[keyOf(lbFile)]} alt={lbFile.fileName} />
+            <img src={previews[keyOf(lbFile)]} alt={lbFile.fileName} />
           </div>
           <div className="lb-nav">
             <Btn size="icon" variant="ghost" onClick={() => setLightbox((v) => Math.max(0, (v ?? 0) - 1))} disabled={lightbox === 0} aria-label="File sebelumnya"><PrevIcon size={16} /></Btn>
-            <span className="dots">
-              {files.map((f, i) => <i key={keyOf(f)} className={i === lightbox ? 'on' : ''} />)}
+            {/* Long lists would overflow a 390px nav bar, so window the dots. */}
+            <span className="dots" aria-hidden="true">
+              {dotWindow(files.length, lightbox ?? 0).map((i) => (
+                <i key={i} className={i === lightbox ? 'on' : ''} />
+              ))}
             </span>
             <Btn size="icon" variant="ghost" onClick={() => setLightbox((v) => Math.min(files.length - 1, (v ?? 0) + 1))} disabled={lightbox === files.length - 1} aria-label="File berikutnya"><NextIcon size={16} /></Btn>
             <span className="num">{(lightbox ?? 0) + 1} / {files.length}</span>

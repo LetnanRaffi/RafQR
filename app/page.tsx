@@ -16,6 +16,7 @@ import {
   CopyIcon, CheckIcon, BoltIcon, ShieldIcon, ClockIcon, XIcon,
 } from '../components/icons';
 import { formatSize } from '../lib/format';
+import { useFilePreviews, fileKey } from '../lib/preview';
 import { MAX_FILE_BYTES, purgeUploads, trackTransfer, trackVisit } from '../lib/session';
 import { formatLimit } from '../lib/limits';
 
@@ -63,6 +64,12 @@ export default function HomePage() {
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const previews = useFilePreviews(rows.map((r) => r.file));
+  // Desktop: once files are selected the dropzone is replaced by a button, so
+  // there would otherwise be no drop target left on the page at all.
+  const [pageDrag, setPageDrag] = useState(false);
+  const dragDepth = useRef(0);
 
   const totalSize = rows.reduce((s, r) => s + r.file.size, 0);
   const shareUrl = typeof window !== 'undefined' && uniqueId ? `${window.location.origin}/d/${uniqueId}` : '';
@@ -119,6 +126,18 @@ export default function HomePage() {
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
   }, [addFiles, mode, step]);
+
+  // Desktop: Cmd/Ctrl+Enter submits, so the mouse is not the only way.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey)) return;
+      if (step !== 'input' || mode !== 'send') return;
+      e.preventDefault();
+      void handleUpload();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   /* ── session polling ──────────────────────────────────────────── */
   useEffect(() => {
@@ -282,6 +301,31 @@ export default function HomePage() {
     resetAll();
   };
 
+  /* ── page-level drop (desktop) ────────────────────────────────── */
+  const dragProps = step === 'input' && mode === 'send' && sendTab === 'files'
+    ? {
+        onDragEnter: (e: React.DragEvent) => {
+          if (!e.dataTransfer.types.includes('Files')) return;
+          e.preventDefault();
+          dragDepth.current += 1;
+          setPageDrag(true);
+        },
+        onDragOver: (e: React.DragEvent) => {
+          if (e.dataTransfer.types.includes('Files')) e.preventDefault();
+        },
+        onDragLeave: () => {
+          dragDepth.current = Math.max(0, dragDepth.current - 1);
+          if (dragDepth.current === 0) setPageDrag(false);
+        },
+        onDrop: (e: React.DragEvent) => {
+          e.preventDefault();
+          dragDepth.current = 0;
+          setPageDrag(false);
+          addFiles(Array.from(e.dataTransfer.files));
+        },
+      }
+    : {};
+
   /* ── render: send ─────────────────────────────────────────────── */
   const renderSend = () => {
     const doneCount = rows.filter((r) => r.status === 'done').length;
@@ -339,9 +383,9 @@ export default function HomePage() {
                           name={r.file.name}
                           dim={r.status === 'queued' && busy}
                           thumb={
-                            r.file.type.startsWith('image/') ? (
-                              <span className="img"><img src={URL.createObjectURL(r.file)} alt="" /></span>
-                            ) : undefined
+                            r.file.type.startsWith('image/') && previews[fileKey(r.file)]
+                              ? <span className="img"><img src={previews[fileKey(r.file)]} alt="" /></span>
+                              : undefined
                           }
                           meta={
                             r.status === 'error' ? <span style={{ color: 'var(--danger)' }}>{r.error}</span>
@@ -486,7 +530,7 @@ export default function HomePage() {
           <div className="dock">
             <div className="sum">
               <span>{rows.length > 0 ? `${rows.length} file · ${formatSize(totalSize)}` : (textContent.trim() ? '1 pesan teks' : 'Belum ada file')}</span>
-              <span className="muted">kirim instan</span>
+              <span className="muted">{rows.length > 0 || textContent.trim() ? 'Ctrl/⌘ + Enter' : 'kirim instan'}</span>
             </div>
             <Btn block size="lg" onClick={handleUpload} disabled={rows.length === 0 && !textContent.trim()}>
               Buat sesi transfer
@@ -670,11 +714,31 @@ export default function HomePage() {
             : <Countdown seconds={secondsLeft} />
         }
       />
-      {step === 'success' || step === 'waiting'
-        ? renderActive()
-        : mode === 'receive'
-          ? renderReceive()
-          : renderSend()}
+      <div {...dragProps} style={{ display: 'contents' }}>
+        {step === 'success' || step === 'waiting'
+          ? renderActive()
+          : mode === 'receive'
+            ? renderReceive()
+            : renderSend()}
+      </div>
+
+      {pageDrag && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            display: 'grid', placeItems: 'center',
+            background: 'rgba(254,249,195,.92)', backdropFilter: 'blur(2px)',
+            pointerEvents: 'none',
+          }}
+        >
+          <div className="card pad stack" style={{ justifyItems: 'center', gap: 10 }}>
+            <CloudUpIcon size={26} />
+            <strong>Lepaskan untuk menambah file</strong>
+            <span className="tiny muted">Ketik ⌘/Ctrl + Enter untuk kirim setelah ini</span>
+          </div>
+        </div>
+      )}
 
       {step === 'input' && mode === 'send' && <HowItWorks />}
 
