@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { uploadFileToR2 } from '../lib/r2-client';
 import { encryptData } from '../lib/crypto';
 import { nanoid } from 'nanoid';
@@ -51,6 +51,8 @@ export default function HomePage() {
 
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [openCode, setOpenCode] = useState('');
+  const [openCodeError, setOpenCodeError] = useState<string | null>(null);
 
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [pinMode, setPinMode] = useState(false);
@@ -65,7 +67,8 @@ export default function HomePage() {
   const chunksRef = useRef<Blob[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const previews = useFilePreviews(rows.map((r) => r.file));
+  const previewFiles = useMemo(() => rows.map((r) => r.file), [rows]);
+  const previews = useFilePreviews(previewFiles);
   // Desktop: once files are selected the dropzone is replaced by a button, so
   // there would otherwise be no drop target left on the page at all.
   const [pageDrag, setPageDrag] = useState(false);
@@ -132,6 +135,7 @@ export default function HomePage() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey)) return;
       if (step !== 'input' || mode !== 'send') return;
+      if (e.target instanceof HTMLElement && e.target.closest('.open-session-form')) return;
       e.preventDefault();
       void handleUpload();
     };
@@ -200,6 +204,27 @@ export default function HomePage() {
     setTtl(null);
     setRecipientOpened(false);
     setSendTab('files');
+  };
+
+  const openSession = (event: React.FormEvent) => {
+    event.preventDefault();
+    const value = openCode.trim();
+    let path: string | null = null;
+    if (/^[a-zA-Z0-9_-]{1,64}$/.test(value)) {
+      path = `/d/${value}`;
+    } else {
+      try {
+        const url = new URL(value);
+        if (url.origin === window.location.origin && /^\/(d|u)\/[a-zA-Z0-9_-]{1,64}\/?$/.test(url.pathname)) {
+          path = url.pathname;
+        }
+      } catch { /* invalid input is explained below */ }
+    }
+    if (!path) {
+      setOpenCodeError('Masukkan kode sesi atau tautan RafQR yang valid.');
+      return;
+    }
+    window.location.assign(path);
   };
 
   /* ── upload ───────────────────────────────────────────────────── */
@@ -334,7 +359,7 @@ export default function HomePage() {
 
     return (
       <>
-        <div className="page narrow stack">
+        <div className="page narrow stack dock-page">
           <div className="stack" style={{ gap: 7 }}>
             <h1 className="big">
               {busy ? <>Mengirim…</> : <>Kirim file ke<br />perangkat lain.</>}
@@ -345,6 +370,26 @@ export default function HomePage() {
                 : 'Seret file atau paste apa pun. HP cukup scan QR-nya.'}
             </p>
           </div>
+
+          {!busy && <form className="card pad stack open-session-form" onSubmit={openSession}>
+            <div className="stack tight">
+              <h2 className="sml">Sudah punya kode atau tautan?</h2>
+              <p className="hint">Tempel tautan RafQR atau ketik kode sesi untuk langsung membuka kiriman.</p>
+            </div>
+            <div className="row open-session">
+              <input
+                className="inp"
+                value={openCode}
+                onChange={(e) => { setOpenCode(e.target.value); setOpenCodeError(null); }}
+                placeholder="Kode sesi atau tautan RafQR"
+                aria-label="Kode sesi atau tautan RafQR"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <Btn type="submit">Buka sesi</Btn>
+            </div>
+            {openCodeError && <p className="err" role="alert">{openCodeError}</p>}
+          </form>}
 
           <div className="card pad stack">
             <Segmented
@@ -544,7 +589,7 @@ export default function HomePage() {
   /* ── render: receive ──────────────────────────────────────────── */
   const renderReceive = () => (
     <>
-      <div className="page narrow stack">
+      <div className="page narrow stack dock-page">
         <div className="stack" style={{ gap: 7 }}>
           <h1 className="big">Terima di<br />perangkat ini.</h1>
           <p className="lead">Aktifkan penerimaan, lalu kirim ID ini ke pengirim. File-nya muncul sendiri.</p>
@@ -562,7 +607,7 @@ export default function HomePage() {
 
           <div className="card flat" style={{ background: 'var(--soft)', display: 'grid', justifyItems: 'center', gap: 10, padding: 22 }}>
             <span className="tiny muted" style={{ fontWeight: 600 }}>ID PENERIMAAN</span>
-            <span className="mono num" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '.16em' }}>{customId}</span>
+            <span className="receive-id mono num">{customId}</span>
             <div className="row" style={{ gap: 8 }}>
               <Copied show={copied} />
               {!copied && (
@@ -577,7 +622,7 @@ export default function HomePage() {
           </div>
 
           <p className="hint">Atau pakai ID sendiri supaya penerima bisa mengetik, bukan scan.</p>
-          <div className="row" style={{ gap: 10 }}>
+          <div className="row receive-custom" style={{ gap: 10 }}>
             <Btn
               size="sm"
               variant="white"
@@ -611,7 +656,7 @@ export default function HomePage() {
     const waiting = step === 'waiting';
     return (
       <>
-        <div className="page">
+        <div className="page dock-page">
           <div className="split">
             <div className="colL stack">
               <div className="stack" style={{ gap: 7 }}>
