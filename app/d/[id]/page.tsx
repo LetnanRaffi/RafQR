@@ -15,7 +15,7 @@ import {
 } from '../../../components/icons';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { canShareFiles, saveOrShare } from '../../../lib/download';
+import { canShareFiles, shareFile } from '../../../lib/download';
 
 interface SessionFile { fileName: string; fileSize: number; fileType: string; firebaseUrl: string; storageRef?: string; }
 interface FileSession {
@@ -192,19 +192,15 @@ export default function ReceivePage() {
     }
   };
 
-  const download = async (f: SessionFile, shareMode = false) => {
+  const download = async (f: SessionFile, action: 'download' | 'share' = 'download') => {
     setBusyFile(f.fileName);
     try {
       const blob = await fetchBlob(f.firebaseUrl);
-      const fallback = () => {
-        saveAs(blob, f.fileName);
-        toast('Tersimpan.', 'success');
-      };
-      // On a phone, share is the only way out — route every tap through it.
-      if (shareMode || shareCapable) {
-        await saveOrShare(blob, f.fileName, fallback);
+      if (action === 'share') {
+        await shareFile(blob, f.fileName);
       } else {
-        fallback();
+        saveAs(blob, f.fileName);
+        toast('Unduhan dimulai.', 'success');
       }
     } catch (err) {
       if ((err as Error)?.name === 'AbortError') return; // user dismissed the sheet
@@ -226,8 +222,8 @@ export default function ReceivePage() {
       for (const f of session.files) zip.file(f.fileName, await fetchBlob(f.firebaseUrl));
       const blob = await zip.generateAsync({ type: 'blob' });
       const name = `rafqr-${id}.zip`;
-      // Same reason as single files: a zip cannot be saved on iOS via saveAs.
-      await saveOrShare(blob, name, () => { saveAs(blob, name); toast('ZIP tersimpan.', 'success'); });
+      saveAs(blob, name);
+      toast('Unduhan ZIP dimulai.', 'success');
     } catch (err) {
       if ((err as Error)?.name === 'AbortError') return;
       toast((err as Error).message || 'Gagal memaketkan ZIP.', 'error');
@@ -366,7 +362,7 @@ export default function ReceivePage() {
           {files.length > 0 && (
             zipAllowed ? (
               <Btn size="sm" variant="white" onClick={downloadZip} disabled={isZipping}>
-                <DownloadIcon size={14} /> {isZipping ? 'Mengompres…' : shareCapable ? 'Simpan semua' : 'Unduh semua'}
+                <DownloadIcon size={14} /> {isZipping ? 'Mengompres…' : 'Unduh semua'}
               </Btn>
             ) : (
               <span className="tiny muted">ZIP dilewati · total {formatLimit(session!.totalSize)}</span>
@@ -390,22 +386,16 @@ export default function ReceivePage() {
                   thumb={thumb}
                   onOpen={canPreview(f) ? () => setLightbox(i) : undefined}
                   actions={
-                    shareCapable ? (
-                      <Btn size="icon" onClick={() => download(f)} aria-label={`Simpan ${f.fileName}`} disabled={busyFile !== null}>
-                        {busyFile === f.fileName
-                          ? <span className="spin" style={{ width: 15, height: 15, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} />
-                          : <DownloadIcon size={16} />}
-                      </Btn>
-                    ) : (
-                      <>
-                        <Btn size="icon" onClick={() => download(f, true)} aria-label={`Bagikan ${f.fileName}`} disabled={busyFile !== null}>
+                    <>
+                      {shareCapable && (
+                        <Btn size="icon" onClick={() => download(f, 'share')} aria-label={`Bagikan ${f.fileName}`} disabled={busyFile !== null}>
                           <ShareIcon size={16} />
                         </Btn>
-                        <Btn size="icon" onClick={() => download(f)} aria-label={`Unduh ${f.fileName}`} disabled={busyFile !== null}>
-                          {busyFile === f.fileName ? <span className="spin" style={{ width: 15, height: 15, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} /> : <DownloadIcon size={16} />}
-                        </Btn>
-                      </>
-                    )
+                      )}
+                      <Btn size="icon" onClick={() => download(f)} aria-label={`Unduh ${f.fileName}`} disabled={busyFile !== null}>
+                        {busyFile === f.fileName ? <span className="spin" style={{ width: 15, height: 15, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} /> : <DownloadIcon size={16} />}
+                      </Btn>
+                    </>
                   }
                 />
               );
@@ -484,7 +474,7 @@ export default function ReceivePage() {
               Cubit-ganda untuk zoom · geser untuk pindah area
             </p>
             <div className="row" style={{ gap: 8 }}>
-              <Btn variant="white" style={{ flex: 1 }} onClick={() => download(lbFile, true)}><ShareIcon size={15} /> Bagikan</Btn>
+              {shareCapable && <Btn variant="white" style={{ flex: 1 }} onClick={() => download(lbFile, 'share')}><ShareIcon size={15} /> Bagikan</Btn>}
               <Btn variant="yellow" style={{ flex: 1 }} onClick={() => { download(lbFile); setLightbox(null); }}><DownloadIcon size={15} /> Unduh</Btn>
             </div>
           </div>

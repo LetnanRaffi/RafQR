@@ -1,13 +1,6 @@
 'use client';
 
-/**
- * Saving a file on a phone is not a download, it is a share.
- *
- * `file-saver`'s saveAs() uses an <a download> + blob URL. iOS Safari has no
- * download manager for that, and an installed PWA (display: standalone) has no
- * download UI at all — the tap does nothing visible. Web Share Level 2 is the
- * only path that reliably saves to Files on iOS and works in standalone mode.
- */
+/** Whether the browser can share a file through the native share sheet. */
 export function canShareFiles(): boolean {
   if (typeof navigator === 'undefined' || !navigator.canShare) return false;
   try {
@@ -19,14 +12,9 @@ export function canShareFiles(): boolean {
   }
 }
 
-/** Share if the platform can take it, otherwise fall back to a normal save. */
-export async function saveOrShare(blob: Blob, name: string, fallback: () => void): Promise<void> {
-  if (canShareFiles()) {
-    const file = new File([blob], name, { type: blob.type || 'application/octet-stream' });
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: name });
-      return;
-    }
-  }
-  fallback();
+/** Only called by an explicit Bagikan action. */
+export async function shareFile(blob: Blob, name: string): Promise<void> {
+  const file = new File([blob], name, { type: blob.type || 'application/octet-stream' });
+  if (!navigator.canShare?.({ files: [file] })) throw new Error('Browser ini tidak mendukung berbagi file.');
+  await navigator.share({ files: [file], title: name });
 }

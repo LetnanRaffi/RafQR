@@ -34,6 +34,7 @@ interface Row {
 }
 
 interface UploadedFile { fileName: string; fileSize: number; fileType: string; firebaseUrl: string; storageRef: string; }
+interface RecentTransfer { id: string; createdAt: number; fileCount: number; }
 
 export default function HomePage() {
   const [mode, setMode] = useState<Mode>('send');
@@ -51,6 +52,9 @@ export default function HomePage() {
 
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [recent, setRecent] = useState<RecentTransfer[]>([]);
+  const [finalizing, setFinalizing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [openCode, setOpenCode] = useState('');
   const [openCodeError, setOpenCodeError] = useState<string | null>(null);
 
@@ -75,6 +79,10 @@ export default function HomePage() {
   const dragDepth = useRef(0);
 
   const totalSize = rows.reduce((s, r) => s + r.file.size, 0);
+  const sentSize = rows.reduce((s, r) => s + r.file.size * (r.status === 'done' ? 1 : r.status === 'uploading' ? r.progress / 100 : 0), 0);
+  const uploadPercent = rows.length === 0 ? 0 : totalSize > 0
+    ? Math.round((sentSize / totalSize) * 100)
+    : Math.round(rows.reduce((s, r) => s + (r.status === 'done' ? 100 : r.progress), 0) / rows.length);
   const shareUrl = typeof window !== 'undefined' && uniqueId ? `${window.location.origin}/d/${uniqueId}` : '';
   const receiveUrl = typeof window !== 'undefined' && uniqueId ? `${window.location.origin}/u/${uniqueId}` : '';
   const activeUrl = step === 'waiting' ? receiveUrl : shareUrl;
@@ -149,8 +157,14 @@ export default function HomePage() {
     const saved = localStorage.getItem('rafqr_history');
     if (!saved) return;
     try {
-      const parsed = JSON.parse(saved).filter((i: { createdAt: number }) => Date.now() - i.createdAt < 1800000);
-      localStorage.setItem('rafqr_history', JSON.stringify(parsed));
+      const parsed = JSON.parse(saved);
+      const valid = Array.isArray(parsed) ? parsed.filter((i: RecentTransfer) =>
+        typeof i.id === 'string' && /^[a-zA-Z0-9_-]{1,64}$/.test(i.id) &&
+        typeof i.fileCount === 'number' &&
+        typeof i.createdAt === 'number' && i.createdAt <= Date.now() && Date.now() - i.createdAt < 1800000,
+      ).slice(0, 3) : [];
+      setRecent(valid);
+      localStorage.setItem('rafqr_history', JSON.stringify(valid));
     } catch { /* corrupt history is not worth a dialog */ }
   }, []);
 
@@ -204,6 +218,8 @@ export default function HomePage() {
     setTtl(null);
     setRecipientOpened(false);
     setSendTab('files');
+    setFinalizing(false);
+    setCancelling(false);
   };
 
   const openSession = (event: React.FormEvent) => {
@@ -236,70 +252,91 @@ export default function HomePage() {
     if (e2eeEnabled && encryptionKey.length < 8) { setError('Kunci E2EE minimal 8 karakter.'); return; }
 
     setStep('uploading');
+    setFinalizing(false);
+    setCancelling(false);
     const uploaded: UploadedFile[] = [];
     const abort = new AbortController();
     abortRef.current = abort;
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'uploading' } : r)));
-      try {
-        const blob = e2eeEnabled ? await encryptData(row.file, encryptionKey) : row.file;
-        const { downloadURL, storagePath } = await uploadFileToR2(
-          blob,
-          (p) => setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, progress: p } : r))),
-          row.file.name,
-          abort.signal,
-        );
-        uploaded.push({
-          fileName: row.file.name,
-          fileSize: blob.size,
-          fileType: row.file.type,
-          firebaseUrl: downloadURL,
-          storageRef: storagePath,
-        });
-        setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'done', progress: 100 } : r)));
-      } catch (err) {
-        if ((err as Error).name === 'AbortError') throw err;
-        // One bad file must not sink the whole batch.
-        setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'error', error: (err as Error).message } : r)));
+    try {
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'uploading' } : r)));
+        try {
+          const blob = e2eeEnabled ? await encryptData(row.file, encryptionKey) : row.file;
+          if (abort.signal.aborted) throw new DOMException('Dibatalkan', 'AbortError');
+          const { downloadURL, storagePath } = await uploadFileToR2(
+            blob,
+            (p) => setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, progress: p } : r))),
+            row.file.name,
+            abort.signal,
+          );
+          uploaded.push({
+            fileName: row.file.name,
+            fileSize: blob.size,
+            fileType: row.file.type,
+            firebaseUrl: downloadURL,
+            storageRef: storagePath,
+          });
+          setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'done', progress: 100 } : r)));
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') throw err;
+          // One bad file must not sink the whole batch.
+          setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'error', progress: 0, error: (err as Error).message } : r)));
+        }
       }
-    }
 
-    setError(null);
-    setTtl(1800);
-    const senderId = customId.trim() || nanoid(10);
-    const res = await fetch('/api/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: senderId,
-        files: uploaded.length > 0 ? uploaded : undefined,
-        textContent: hasText ? textContent.trim() : undefined,
-        pin: pinMode ? pinCode : undefined,
-        e2ee: e2eeEnabled,
-      }),
-    });
+      if (abort.signal.aborted) throw new DOMException('Dibatalkan', 'AbortError');
+      if (uploaded.length === 0 && !hasText) {
+        setError('Semua file gagal diunggah. Coba lagi.');
+        setStep('input');
+        return;
+      }
 
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      // Blobs already in storage have no session pointing at them; drop them.
-      // Deliberately no `?id=` — on a 409 that id belongs to someone else.
+      setFinalizing(true);
+      const senderId = customId.trim() || nanoid(10);
+      const res = await fetch('/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: senderId,
+          files: uploaded.length > 0 ? uploaded : undefined,
+          textContent: hasText ? textContent.trim() : undefined,
+          pin: pinMode ? pinCode : undefined,
+          e2ee: e2eeEnabled,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Gagal membuat sesi.');
+      }
+
+      setRows((prev) => prev.filter((r) => r.status === 'done'));
+      setTtl(1800);
+      setUniqueId(senderId);
+      setStep('success');
+      const nextRecent = [{ id: senderId, createdAt: Date.now(), fileCount: uploaded.length }, ...recent.filter((r) => r.id !== senderId)].slice(0, 3);
+      setRecent(nextRecent);
+      try { localStorage.setItem('rafqr_history', JSON.stringify(nextRecent)); } catch { /* storage may be disabled */ }
+      if (uploaded.length < rows.length) toast(`${rows.length - uploaded.length} file gagal; yang berhasil tetap terkirim.`, 'error');
+      trackTransfer(senderId, uploaded.length > 0 ? uploaded : [{ fileName: 'Pesan teks', fileSize: new Blob([textContent]).size }]);
+    } catch (err) {
+      // No session points at these objects if the request failed or was cancelled.
       await purgeUploads(uploaded.map((f) => f.storageRef));
-      setError(body.error || 'Gagal membuat sesi.');
+      setRows((prev) => prev.map((r) => ({ ...r, status: 'queued', progress: 0, error: undefined })));
+      setError((err as Error).name === 'AbortError' ? 'Transfer dibatalkan.' : (err as Error).message || 'Gagal membuat sesi.');
       setStep('input');
-      return;
+    } finally {
+      abortRef.current = null;
+      setFinalizing(false);
+      setCancelling(false);
     }
-
-    setUniqueId(senderId);
-    setStep('success');
-    trackTransfer(senderId, uploaded.length > 0 ? uploaded : [{ fileName: 'Pesan teks', fileSize: new Blob([textContent]).size }]);
   };
 
-  const cancelUpload = async () => {
+  const cancelUpload = () => {
+    if (finalizing) return;
+    setCancelling(true);
     abortRef.current?.abort();
-    setRows((prev) => prev.filter((r) => r.status !== 'done'));
-    setStep('input');
   };
 
   const startReceiving = async () => {
@@ -359,7 +396,7 @@ export default function HomePage() {
 
     return (
       <>
-        <div className="page narrow stack dock-page">
+        <div className="page narrow stack send-page">
           <div className="stack" style={{ gap: 7 }}>
             <h1 className="big">
               {busy ? <>Mengirim…</> : <>Kirim file ke<br />perangkat lain.</>}
@@ -370,26 +407,6 @@ export default function HomePage() {
                 : 'Seret file atau paste apa pun. HP cukup scan QR-nya.'}
             </p>
           </div>
-
-          {!busy && <form className="card pad stack open-session-form" onSubmit={openSession}>
-            <div className="stack tight">
-              <h2 className="sml">Sudah punya kode atau tautan?</h2>
-              <p className="hint">Tempel tautan RafQR atau ketik kode sesi untuk langsung membuka kiriman.</p>
-            </div>
-            <div className="row open-session">
-              <input
-                className="inp"
-                value={openCode}
-                onChange={(e) => { setOpenCode(e.target.value); setOpenCodeError(null); }}
-                placeholder="Kode sesi atau tautan RafQR"
-                aria-label="Kode sesi atau tautan RafQR"
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <Btn type="submit">Buka sesi</Btn>
-            </div>
-            {openCodeError && <p className="err" role="alert">{openCodeError}</p>}
-          </form>}
 
           <div className="card pad stack">
             <Segmented
@@ -434,10 +451,11 @@ export default function HomePage() {
                           }
                           meta={
                             r.status === 'error' ? <span style={{ color: 'var(--danger)' }}>{r.error}</span>
-                            : r.status === 'uploading' ? `${formatSize(r.file.size)} · uploading`
+                            : r.status === 'uploading' ? `${formatSize(r.file.size)} · mengunggah ${r.progress}%`
                             : r.status === 'done' ? `${formatSize(r.file.size)} · ${r.file.name.split('.').pop()?.toUpperCase()} · selesai`
                             : `${formatSize(r.file.size)} · ${r.file.name.split('.').pop()?.toUpperCase()}${busy ? ' · antre' : ''}`
                           }
+                          progress={busy && (r.status === 'uploading' || r.status === 'done') ? r.progress : undefined}
                           actions={
                             busy && r.status === 'uploading' ? (
                               <svg width="16" height="16" className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-label="Mengunggah">
@@ -493,7 +511,65 @@ export default function HomePage() {
               </div>
             )}
             {error && <p className="err" role="alert">{error}</p>}
+
+            <div className="send-action">
+              {busy ? (
+                <>
+                  <div className="progcard" role="status" aria-live="polite">
+                    <div className="lbl">
+                      <span>{finalizing ? 'Membuat sesi…' : cancelling ? 'Membersihkan file…' : `${doneCount} dari ${rows.length} file selesai`}</span>
+                      <span className="num">{uploadPercent}%</span>
+                    </div>
+                    <div className="progline" role="progressbar" aria-label="Progres transfer" aria-valuenow={uploadPercent} aria-valuemin={0} aria-valuemax={100}>
+                      <i style={{ width: `${uploadPercent}%` }} />
+                    </div>
+                  </div>
+                  <Btn variant="white" block onClick={cancelUpload} disabled={finalizing || cancelling}>
+                    {finalizing ? 'Menyimpan sesi' : cancelling ? 'Membatalkan…' : 'Batalkan & bersihkan'}
+                  </Btn>
+                </>
+              ) : (
+                <>
+                  <div className="sum">
+                    <span>{rows.length > 0 ? `${rows.length} file · ${formatSize(totalSize)}` : (textContent.trim() ? '1 pesan teks' : 'Belum ada file')}</span>
+                    <span className="muted">{rows.length > 0 || textContent.trim() ? 'Ctrl/⌘ + Enter' : 'kirim instan'}</span>
+                  </div>
+                  <Btn block size="lg" onClick={handleUpload} disabled={rows.length === 0 && !textContent.trim()}>
+                    Buat sesi transfer
+                  </Btn>
+                </>
+              )}
+            </div>
           </div>
+
+          {!busy && <form className="card pad stack open-session-form" onSubmit={openSession}>
+            <div className="stack tight">
+              <h2 className="sml">Sudah punya kode atau tautan?</h2>
+              <p className="hint">Tempel tautan RafQR atau ketik kode sesi untuk langsung membuka kiriman.</p>
+            </div>
+            <div className="row open-session">
+              <input
+                className="inp"
+                value={openCode}
+                onChange={(e) => { setOpenCode(e.target.value); setOpenCodeError(null); }}
+                placeholder="Kode sesi atau tautan RafQR"
+                aria-label="Kode sesi atau tautan RafQR"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <Btn type="submit">Buka sesi</Btn>
+            </div>
+            {openCodeError && <p className="err" role="alert">{openCodeError}</p>}
+          </form>}
+
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            className="sr-only"
+            aria-label="Pemilih file tambahan"
+            onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ''; }}
+          />
 
           <Disclosure open={optionsOpen} onToggle={() => setOptionsOpen(!optionsOpen)}>
             <div className="stack tight" style={{ paddingTop: 8 }}>
@@ -564,24 +640,25 @@ export default function HomePage() {
           <p className="hint" style={{ textAlign: 'center' }}>
             Sesi &amp; file terhapus otomatis 30 menit setelah dibuat.
           </p>
+
+          {!busy && recent.length > 0 && (
+            <div className="card pad stack recent-card">
+              <div className="stack tight">
+                <h2 className="sml">Kiriman terakhir di perangkat ini</h2>
+                <p className="hint">Tautan tersimpan lokal sampai sesi berakhir, tanpa menyimpan file di perangkat ini.</p>
+              </div>
+              <div className="recent-actions">
+                <span className="mono recent-id">{recent[0].id} · {recent[0].fileCount > 0 ? `${recent[0].fileCount} file` : 'pesan teks'}</span>
+                <Btn size="sm" variant="white" onClick={() => copy(`${window.location.origin}/d/${recent[0].id}`)}>
+                  <CopyIcon size={14} /> Salin tautan
+                </Btn>
+                <Btn size="sm" onClick={() => { window.location.href = `/d/${recent[0].id}`; }}>Buka</Btn>
+              </div>
+              <button className="recent-clear" type="button" onClick={() => { setRecent([]); localStorage.removeItem('rafqr_history'); }}>Hapus riwayat lokal</button>
+            </div>
+          )}
         </div>
 
-        {busy ? (
-          <div className="dock">
-            <div className="sum"><span>{doneCount} dari {rows.length} file terkirim</span><span>aman</span></div>
-            <Btn variant="white" block onClick={cancelUpload}>Batalkan &amp; bersihkan</Btn>
-          </div>
-        ) : (
-          <div className="dock">
-            <div className="sum">
-              <span>{rows.length > 0 ? `${rows.length} file · ${formatSize(totalSize)}` : (textContent.trim() ? '1 pesan teks' : 'Belum ada file')}</span>
-              <span className="muted">{rows.length > 0 || textContent.trim() ? 'Ctrl/⌘ + Enter' : 'kirim instan'}</span>
-            </div>
-            <Btn block size="lg" onClick={handleUpload} disabled={rows.length === 0 && !textContent.trim()}>
-              Buat sesi transfer
-            </Btn>
-          </div>
-        )}
       </>
     );
   };
@@ -800,7 +877,7 @@ function HowItWorks() {
     { t: 'HP buka & unduh', d: 'Kalau banyak file, unduh semua lewat satu ZIP.' },
   ];
   return (
-    <div className="page narrow stack" style={{ paddingTop: 0 }}>
+    <div className="page narrow stack" style={{ paddingTop: 0, flex: 'none' }}>
       <div className="card pad stack" style={{ gap: 14 }}>
         <h2 className="mid">Cara kerja</h2>
         <div className="stack tight">

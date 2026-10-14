@@ -22,6 +22,7 @@ export const uploadFileToR2 = async (
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fileName, contentType, fileSize: file.size }),
+    signal,
   });
   if (!grantRes.ok) {
     const err = await grantRes.json().catch(() => ({}));

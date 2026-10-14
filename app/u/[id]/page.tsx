@@ -21,8 +21,11 @@ export default function MobileUploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [text, setText] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [current, setCurrent] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [fileProgress, setFileProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [alive, setAlive] = useState<boolean | null>(null);
 
@@ -56,6 +59,8 @@ export default function MobileUploadPage() {
 
     setUploading(true);
     setProgress(0);
+    setCurrentIndex(-1);
+    setFileProgress(0);
     const uploaded: UploadedFile[] = [];
     const abort = new AbortController();
     abortRef.current = abort;
@@ -63,12 +68,21 @@ export default function MobileUploadPage() {
     try {
       for (let i = 0; i < files.length; i++) {
         setCurrent(files[i].name);
+        setCurrentIndex(i);
+        setFileProgress(0);
+        const completedBytes = files.slice(0, i).reduce((sum, file) => sum + file.size, 0);
         const { downloadURL, storagePath } = await uploadFileToR2(
           files[i],
-          (p) => setProgress(Math.round(((i + p / 100) / (files.length || 1)) * 100)),
+          (p) => {
+            setFileProgress(p);
+            setProgress(Math.min(95, Math.round(totalSize > 0
+              ? ((completedBytes + files[i].size * p / 100) / totalSize) * 95
+              : ((i + p / 100) / files.length) * 95)));
+          },
           undefined,
           abort.signal,
         );
+        setFileProgress(100);
         uploaded.push({
           fileName: files[i].name,
           fileSize: files[i].size,
@@ -77,7 +91,10 @@ export default function MobileUploadPage() {
           storageRef: storagePath,
         });
       }
-      setProgress(90);
+      if (abort.signal.aborted) throw new DOMException('Dibatalkan', 'AbortError');
+      setProgress(95);
+      setFinalizing(true);
+      setCurrent('Menyimpan sesi…');
       const res = await fetch('/api/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,22 +106,23 @@ export default function MobileUploadPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        await purgeUploads(uploaded.map((f) => f.storageRef));
         throw new Error(body.error || 'Gagal mengirim data ke server.');
       }
       setProgress(100);
       trackTransfer(String(id), uploaded.length > 0 ? uploaded : [{ fileName: 'Pesan teks', fileSize: new Blob([text]).size }]);
       router.push(`/d/${id}`);
     } catch (err) {
+      await purgeUploads(uploaded.map((f) => f.storageRef));
       if ((err as Error).name === 'AbortError') {
-        await purgeUploads(uploaded.map((f) => f.storageRef));
         setProgress(0);
       } else {
         setError((err as Error).message || 'Gagal mengirim.');
       }
     } finally {
       setUploading(false);
+      setFinalizing(false);
       setCurrent('');
+      setCurrentIndex(-1);
     }
   };
 
@@ -160,7 +178,8 @@ export default function MobileUploadPage() {
                   key={`${f.name}-${i}`}
                   name={f.name}
                   thumb={f.type.startsWith('image/') && previews[fileKey(f)] ? <span className="img"><img src={previews[fileKey(f)]} alt="" /></span> : undefined}
-                  meta={`${formatSize(f.size)} · ${uploading && current === f.name ? 'mengirim' : 'siap'}`}
+                  meta={`${formatSize(f.size)} · ${uploading && currentIndex === i ? `mengirim ${fileProgress}%` : uploading && i < currentIndex ? 'selesai' : 'siap'}`}
+                  progress={uploading && i <= currentIndex ? i < currentIndex ? 100 : fileProgress : undefined}
                   actions={
                     uploading ? undefined : (
                       <Btn size="icon" onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))} aria-label={`Hapus ${f.name}`}>
@@ -181,34 +200,39 @@ export default function MobileUploadPage() {
           ref={fileRef}
           type="file"
           multiple
-          className="hidden"
+          className="sr-only"
+          aria-label="Pemilih file tambahan"
           onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ''; }}
         />
 
         <textarea className="inp" value={text} onChange={(e) => setText(e.target.value)} placeholder="Tambah pesan untuk PC (opsional)…" disabled={uploading} />
 
         {error && <p className="err" role="alert">{error}</p>}
-      </div>
 
-      {uploading ? (
-        <div className="dock">
-          <div className="progcard">
-            <div className="lbl"><span>{current || 'mengirim'}</span><span className="num">{progress}%</span></div>
-            <div className="progline"><i style={{ width: `${progress}%` }} /></div>
-          </div>
-          <Btn variant="white" block onClick={() => abortRef.current?.abort()}>Batalkan</Btn>
+        <div className="mobile-upload-action">
+          {uploading ? (
+            <>
+              <div className="progcard" role="status" aria-live="polite">
+                <div className="lbl"><span>{current || 'mengirim'}</span><span className="num">{progress}%</span></div>
+                <div className="progline" role="progressbar" aria-label="Progres transfer" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+                  <i style={{ width: `${progress}%` }} />
+                </div>
+              </div>
+              <Btn variant="white" block onClick={() => abortRef.current?.abort()} disabled={finalizing}>{finalizing ? 'Menyimpan sesi' : 'Batalkan'}</Btn>
+            </>
+          ) : (
+            <>
+              <div className="sum">
+                <span>{files.length > 0 ? `${files.length} file · ${formatSize(totalSize)}` : 'Belum ada file'}</span>
+                <span className="muted">langsung ke PC</span>
+              </div>
+              <Btn block size="lg" onClick={send} disabled={files.length === 0 && !text.trim()}>
+                Kirim ke PC sekarang
+              </Btn>
+            </>
+          )}
         </div>
-      ) : (
-        <div className="dock">
-          <div className="sum">
-            <span>{files.length > 0 ? `${files.length} file · ${formatSize(totalSize)}` : 'Belum ada file'}</span>
-            <span className="muted">langsung ke PC</span>
-          </div>
-          <Btn block size="lg" onClick={send} disabled={files.length === 0 && !text.trim()}>
-            Kirim ke PC sekarang
-          </Btn>
-        </div>
-      )}
+      </div>
     </AppShell>
   );
 }

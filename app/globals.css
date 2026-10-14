@@ -288,6 +288,9 @@ textarea.inp { min-height: 92px; resize: none; line-height: 1.55; }
   display: grid; gap: 8px;
 }
 .dock .sum { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-weight: 600; }
+.send-action, .mobile-upload-action { display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+.send-action .sum, .mobile-upload-action .sum { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.send-action .sum > span, .mobile-upload-action .sum > span { min-width: 0; overflow-wrap: anywhere; }
 @media (min-width: 620px) {
   .dock { position: static; padding: 0; border: 0; background: none; backdrop-filter: none; }
 }
@@ -322,9 +325,16 @@ button.lrow:active { transform: none; }
 .progline { height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
 .progline i { display: block; height: 100%; background: var(--ink); border-radius: 99px; transition: width .25s; }
 .progcard { background: var(--ink); color: #fff; border-radius: var(--r-l); padding: 16px; display: grid; gap: 11px; }
-.progcard .lbl { display: flex; justify-content: space-between; font: 600 12px/1 ui-monospace, monospace; }
+.progcard .lbl { display: flex; justify-content: space-between; gap: 12px; font: 600 12px/1.3 ui-monospace, monospace; }
+.progcard .lbl span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.progcard .lbl span:last-child { flex: none; }
 .progcard .progline { background: rgba(255, 255, 255, .18); }
-.progcard .progline i { background: var(--accent); }
+.progcard .progline i { background: linear-gradient(90deg, var(--accent), #fde68a, var(--accent)); background-size: 200% 100%; animation: progress-glow 1.4s linear infinite; }
+.file-progress { display: block; width: 100%; height: 4px; margin-top: 7px; }
+.recent-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.recent-id { min-width: 0; max-width: 100%; margin-right: auto; overflow-wrap: anywhere; font-size: 12px; font-weight: 650; }
+.recent-clear { justify-self: start; border: 0; background: none; padding: 6px 0; color: var(--muted); font-size: 12px; text-decoration: underline; cursor: pointer; }
+@keyframes progress-glow { to { background-position: -200% 0; } }
 .spin { animation: spin 1s linear infinite; }
 
 /* ── QR box ─────────────────────────────────────────────────────── */
@@ -363,6 +373,14 @@ button.lrow:active { transform: none; }
 
 @media (max-width: 619px) {
   .dock-page { padding-bottom: 30px; }
+  .btn.sm { min-height: 44px; }
+  .btn.icon { min-height: 44px; width: 44px; }
+  .recent-actions .recent-id { flex-basis: 100%; }
+}
+
+@media (max-width: 359px) {
+  .lrow.with-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  .lrow.with-actions .acts { grid-column: 2; justify-self: end; margin-left: 0; }
 }
 
 /* ── lightbox ───────────────────────────────────────────────────── */

@@ -248,6 +248,7 @@ export function FileRow({
   dim,
   actions,
   onOpen,
+  progress,
 }: {
   name: string;
   meta: React.ReactNode;
@@ -255,6 +256,7 @@ export function FileRow({
   dim?: boolean;
   actions?: React.ReactNode;
   onOpen?: () => void;
+  progress?: number;
 }) {
   const inner = (
     <>
@@ -262,15 +264,20 @@ export function FileRow({
       <span className="lrow-txt">
         <span className="t">{name}</span>
         <span className="s">{meta}</span>
+        {progress !== undefined && (
+          <span className="progline file-progress" role="progressbar" aria-label={`Progres ${name}`} aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+            <i style={{ width: `${progress}%` }} />
+          </span>
+        )}
       </span>
-      {actions && <span className="acts">{actions}</span>}
+      {actions && <span className="acts" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>{actions}</span>}
     </>
   );
-  const cls = `lrow${dim ? ' dim' : ''}`;
+  const cls = `lrow${dim ? ' dim' : ''}${actions ? ' with-actions' : ''}`;
   return onOpen ? (
-    <button type="button" onClick={onOpen} style={{ textAlign: 'left', width: '100%' }} className={cls}>
+    <div role="button" tabIndex={0} aria-label={`Buka pratinjau ${name}`} onClick={onOpen} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen(); } }} style={{ textAlign: 'left', width: '100%' }} className={cls}>
       {inner}
-    </button>
+    </div>
   ) : (
     <div className={cls}>{inner}</div>
   );
