@@ -1,16 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ToastHost } from "../components/toast";
 
-const outfitFont = Outfit({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-outfit",
-});
-
+// No webfont: system-ui per design tokens, and it removes the next/font
+// Google build-time fetch that already broke a Vercel deploy once.
 export const viewport: Viewport = {
-  themeColor: "#FBFBF9",
+  themeColor: "#FAFAF9",
   width: "device-width",
   initialScale: 1,
 };
@@ -76,8 +71,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={outfitFont.variable}>
-      <body className={`${outfitFont.className} font-sans`}>
+    <html lang="id">
+      <body>
         {/* SVG Noise filter removed for massive performance boost */}
         <noscript>
           <div style={{ padding: "20px", textAlign: "center", color: "white", background: "#030712" }}>

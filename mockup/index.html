@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RafQR — Redesign Mockup (clean · mobile + desktop)</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ── icons ────────────────────────────────────────────────── -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 32 32"><path d="M0 0h32v32H0z" fill="currentColor"/><path d="M4 4h8v8H4zM4 20h8v8H4zM20 4h8v8h-8z" fill="var(--inv,#fff)"/><path d="M20 20h4v4h-4zM24 24h4v4h-4zM20 25h2v3h-2zM25 20h3v2h-3z" fill="var(--inv,#fff)"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/></symbol>
+  <symbol id="i-cloudup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.7 1.5A4 4 0 0 0 6.5 19Z"/><path d="M12 21v-7.5M9.2 16l2.8-2.8L14.8 16"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6.5M12 15.5V3M8 7l4-4 4 4"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10" width="15" height="11" rx="3"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 2"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11.5" height="12" rx="3"/><path d="M5.5 15V5.5A2.5 2.5 0 0 1 8 3h7"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="m3.5 16.5 4.8-4.8 3.7 3.7 3.2-3.2 5.3 5.3"/><circle cx="9" cy="9.5" r="1.3"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v5h-5"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 2 5 13.5h6L10 22l8.5-11.5h-6z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l.9 12.2a2 2 0 0 0 2 1.8h5.2a2 2 0 0 0 2-1.8L17.5 7"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14.5 6.5 17.5 9.5"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10 6 6 6-6 6"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 1 0-5.7-5.7l-1.7 1.7"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 1 0 5.7 5.7l1.7-1.7"/></symbol>
+</svg>
+
+<header class="mbar">
+  <div class="mbar-in">
+    <div class="mbrand">
+      <span class="mark"><svg width="17" height="17" style="--inv:#111"><use href="#i-logo"/></svg></span>
+      <div><b>RafQR — Redesign</b><span>19 layar · clean · mobile + desktop</span></div>
+    </div>
+    <nav class="chips">
+      <button class="chip" data-f="all" aria-pressed="true">Semua</button>
+      <button class="chip" data-f="home" aria-pressed="false">Beranda</button>
+      <button class="chip" data-f="scan" aria-pressed="false">Pindai</button>
+      <button class="chip" data-f="dl" aria-pressed="false">Terima Data</button>
+      <button class="chip" data-f="up" aria-pressed="false">Upload HP</button>
+      <button class="chip" data-f="admin" aria-pressed="false">Admin</button>
+      <button class="chip" data-f="dbg" aria-pressed="false">Debug</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- 01 · kirim, kosong -->
+<article class="shot" data-page="home">
+  <div class="shot-h"><span class="n">01</span><h3>Kirim — keadaan awal</h3><span class="route">/</span>
+    <span class="note">Satu permukaan saja: drop → kirim. Opsi disembunyikan sampai dipakai.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:var(--accent)"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">RafQR</span></span>
+        <span class="spacer"></span>
+        <button class="btn white sm"><svg width="16" height="16"><use href="#i-scan"/></svg> Pindai</button>
+      </div></div>
+      <div class="page narrow">
+        <div class="stack" style="gap:7px">
+          <h1 class="big">Kirim file ke<br>perangkat lain.</h1>
+          <p class="lead">Seret file atau paste apa pun. HP cukup scan QR-nya.</p>
+        </div>
+        <div class="card pad stack">
+          <div class="seg"><b class="on"><svg width="15" height="15"><use href="#i-cloudup"/></svg> Kirim</b><b><svg width="15" height="15"><use href="#i-dl"/></svg> Terima</b></div>
+          <div class="drop">
+            <span class="ico"><svg width="22" height="22"><use href="#i-cloudup"/></svg></span>
+            <span class="t">Seret file ke sini</span>
+            <span class="s">atau klik pilih · maks 50 MB per file</span>
+            <button class="btn white sm" style="margin-top:4px">Pilih file</button>
+          </div>
+          <div class="divider"></div>
+          <button class="disc">Opsi lanjutan <svg width="15" height="15" class="chev" style="margin-left:auto"><use href="#i-chev"/></svg></button>
+          <p class="hint" style="text-align:center">Sesi &amp; file terhapus otomatis 30 menit setelah dibuat.</p>
+        </div>
+      </div>
+      <div class="dock"><button class="btn block lg">Buat sesi transfer</button></div>
+    </div>
+  </template>
+</article>
+
+<!-- 02 · kirim, terisi -->
+<article class="shot" data-page="home">
+  <div class="shot-h"><span class="n">02</span><h3>Kirim — file dipilih</h3><span class="route">/</span>
+    <span class="note">Baris file + total ukuran, tab teks, opsi terbuka. CTA di dock, selalu terjangkau jempol.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:var(--accent)"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">RafQR</span></span>
+        <span class="spacer"></span>
+        <button class="btn white sm"><svg width="16" height="16"><use href="#i-scan"/></svg> Pindai</button>
+      </div></div>
+      <div class="page narrow stack">
+        <div class="card pad stack">
+          <div class="seg"><b class="on"><svg width="15" height="15"><use href="#i-cloudup"/></svg> Kirim</b><b><svg width="15" height="15"><use href="#i-dl"/></svg> Terima</b></div>
+          <div class="tabs"><b class="on">File · 3</b><b>Teks</b></div>
+          <div class="rows">
+            <div class="lrow">
+              <span class="img a"><svg width="17" height="17"><use href="#i-img"/></svg></span>
+              <span class="lrow-txt"><span class="t">screenshot-maret.png</span><span class="s">2,1 MB · PNG</span></span>
+              <span class="acts"><button class="btn icon"><svg width="15" height="15"><use href="#i-x"/></svg></button></span>
+            </div>
+            <div class="lrow">
+              <span class="tile y"><svg width="17" height="17"><use href="#i-file"/></svg></span>
+              <span class="lrow-txt"><span class="t">invoice-2026-03.pdf</span><span class="s">840 KB · PDF</span></span>
+              <span class="acts"><button class="btn icon"><svg width="15" height="15"><use href="#i-x"/></svg></button></span>
+            </div>
+            <div class="lrow">
+              <span class="tile y"><svg width="17" height="17"><use href="#i-music"/></svg></span>
+              <span class="lrow-txt"><span class="t">catatan-klien.m4a</span><span class="s">9,6 MB · Audio</span></span>
+              <span class="acts"><button class="btn icon"><svg width="15" height="15"><use href="#i-x"/></svg></button></span>
+            </div>
+          </div>
+          <div class="drop" style="padding:16px;border-radius:var(--r-m)">
+            <span class="s">Tambah file lain</span>
+          </div>
+        </div>
+        <div class="card pad stack">
+          <button class="disc open">Opsi lanjutan <svg width="15" height="15" class="chev" style="margin-left:auto"><use href="#i-chev"/></svg></button>
+          <div class="stack tight">
+            <label class="row" style="gap:12px;cursor:pointer">
+              <span class="stack tight" style="gap:2px"><span style="font-weight:600;font-size:14px">Enkripsi E2EE</span><span class="tiny muted">Kunci tidak pernah dikirim ke server</span></span>
+              <span class="spacer"></span>
+              <span class="toggle on"><i></i></span>
+            </label>
+            <div class="field"><label>Kunci rahasia</label>
+              <div class="row" style="gap:8px">
+                <input class="inp m" value="a7f3-x91q-4tzm">
+                <button class="btn icon"><svg width="16" height="16"><use href="#i-refresh"/></svg></button>
+              </div>
+            </div>
+            <div class="field"><label>ID sesi (opsional)</label><input class="inp m" placeholder="otomatis — RAF7K2X"></div>
+          </div>
+        </div>
+        <p class="hint" style="text-align:center">Maksimal 5 file · 250 MB per sesi.</p>
+      </div>
+      <div class="dock">
+        <div class="sum"><span>3 file · 12,5 MB</span><span class="muted">kirim instan</span></div>
+        <button class="btn block lg">Buat sesi transfer</button>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 03 · proses upload -->
+<article class="shot" data-page="home">
+  <div class="shot-h"><span class="n">03</span><h3>Kirim — sedang mengirim</h3><span class="route">/ · uploading</span>
+    <span class="note">Progres per file, bukan spinner buta. Bisa dibatalkan, dan pembatalan benar-benar membersihkan file.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:var(--accent)"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">RafQR</span></span>
+        <span class="spacer"></span><span class="count num"><s></s>28:14</span>
+      </div></div>
+      <div class="page narrow stack">
+        <div class="stack" style="gap:7px">
+          <h1 class="big">Mengirim…</h1>
+          <p class="lead">Jangan tutup halaman. Sesi sudah aman, tinggal menunggu file naik.</p>
+        </div>
+        <div class="progcard">
+          <div class="lbl"><span>screenshot-maret.png</span><span class="num">72%</span></div>
+          <div class="progline"><i style="width:72%"></i></div>
+          <p style="font-size:12px;color:#A8AFBB">File 2 dari 3 · sisa ±8 detik</p>
+        </div>
+        <div class="rows">
+          <div class="lrow"><span class="img a"><svg width="17" height="17"><use href="#i-img"/></svg></span>
+            <span class="lrow-txt"><span class="t">screenshot-maret.png</span><span class="s">2,1 MB · uploading</span></span>
+            <span class="acts"><svg width="16" height="16" class="prog" style="animation:spin 1s linear infinite"><use href="#i-refresh"/></svg></span></div>
+          <div class="lrow"><span class="tile y"><svg width="17" height="17"><use href="#i-file"/></svg></span>
+            <span class="lrow-txt"><span class="t">invoice-2026-03.pdf</span><span class="s">840 KB · <span style="color:var(--ok);font-weight:650">selesai</span></span></span></div>
+          <div class="lrow" style="opacity:.55"><span class="tile y"><svg width="17" height="17"><use href="#i-music"/></svg></span>
+            <span class="lrow-txt"><span class="t">catatan-klien.m4a</span><span class="s">9,6 MB · antre</span></span></div>
+        </div>
+        <div class="alert">Gagal: <b>rekap-proyek.mp4</b> melebihi batas 50 MB. File lain tetap terkirim.</div>
+      </div>
+      <div class="dock">
+        <button class="btn white block">Batalkan &amp; bersihkan</button>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 04 · sesi aktif / QR -->
+<article class="shot" data-page="home">
+  <div class="shot-h"><span class="n">04</span><h3>Sesi aktif — QR</h3><span class="route">/ · success</span>
+    <span class="note">Satu aksi utama: salin tautan. QR tetap dipakai kalau recipient ada di depan.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:var(--accent)"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">RafQR</span></span>
+        <span class="spacer"></span><span class="count num"><s></s>28:14</span>
+      </div></div>
+      <div class="page">
+        <div class="split">
+          <div class="colL stack">
+            <div class="stack" style="gap:7px">
+              <span class="badge g"><svg width="13" height="13"><use href="#i-check"/></svg> Sudah diterima di HP</span>
+              <h1 class="big">Sesi aktif.</h1>
+              <p class="lead">Kirim tautan ini ke recipient, atau biarkan dia scan QR di layar.</p>
+            </div>
+            <div class="stack tight">
+              <div class="linkrow"><span class="u">rafqr.app/d/K4X9PL</span>
+                <button class="btn sm"><svg width="14" height="14"><use href="#i-copy"/></svg> Salin</button></div>
+              <div class="row" style="gap:8px">
+                <button class="btn white sm" style="flex:1"><svg width="15" height="15"><use href="#i-share"/></svg> Bagikan</button>
+                <button class="btn white sm" style="flex:1"><svg width="15" height="15"><use href="#i-img"/></svg> Simpan QR</button>
+              </div>
+            </div>
+            <div class="note">
+              <svg width="16" height="16" style="flex:none;margin-top:1px"><use href="#i-shield"/></svg>
+              <span>Terenkripsi di browser. Kunci <span class="mono">a7f3-x91q-4tzm</span> harus kamu kirim terpisah.</span>
+            </div>
+            <p class="hint">Sesi <span class="mono">K4X9PL</span> · 3 file · 12,5 MB · hangus otomatis 28:14 lagi</p>
+          </div>
+          <div class="stack" style="justify-items:center;gap:12px">
+            <div class="qrbox">
+              <i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>
+              <div class="qrmat"><i class="fd a"></i><i class="fd b"></i><i class="fd c"></i><span class="qrbadge">R</span></div>
+            </div>
+            <span class="badge n">Pindai untuk membuka</span>
+          </div>
+        </div>
+      </div>
+      <div class="dock"><button class="btn white block">Selesai — kirim lagi</button></div>
+    </div>
+  </template>
+</article>
+
+<!-- 05 · terima -->
+<article class="shot" data-page="home">
+  <div class="shot-h"><span class="n">05</span><h3>Terima — ID penerimaan</h3><span class="route">/ · tab Terima</span>
+    <span class="note">ID dibuat besar & mono, sekali tap untuk salin. Penjelasan satu kalimat, bukan paragraf.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:var(--accent)"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">RafQR</span></span>
+        <span class="spacer"></span>
+        <button class="btn white sm"><svg width="16" height="16"><use href="#i-scan"/></svg> Pindai</button>
+      </div></div>
+      <div class="page narrow stack">
+        <div class="stack" style="gap:7px">
+          <h1 class="big">Terima di perangkat ini.</h1>
+          <p class="lead">Aktifkan penerimaan, lalu kirim ID ini ke pengirim. File-nya muncul sendiri.</p>
+        </div>
+        <div class="card pad stack">
+          <div class="seg"><b><svg width="15" height="15"><use href="#i-cloudup"/></svg> Kirim</b><b class="on"><svg width="15" height="15"><use href="#i-dl"/></svg> Terima</b></div>
+          <div class="card flat" style="background:var(--soft);display:grid;justify-items:center;gap:10px;padding:22px">
+            <span class="tiny muted" style="font-weight:600">ID PENERIMAAN</span>
+            <span class="mono num" style="font-size:30px;font-weight:700;letter-spacing:.16em">QM82LP</span>
+            <div class="row" style="gap:8px">
+              <button class="btn sm"><svg width="14" height="14"><use href="#i-copy"/></svg> Salin</button>
+              <button class="btn white sm"><svg width="14" height="14"><use href="#i-refresh"/></svg> ID baru</button>
+            </div>
+          </div>
+          <p class="hint">Atau pakai ID sendiri supaya recipient bisa mengetik, bukan scan.</p>
+          <div class="field"><label>ID kustom</label><input class="inp m" placeholder="mis. RAF-123"></div>
+        </div>
+        <div class="info"><svg width="15" height="15"><use href="#i-bolt"/></svg> Halaman ini boleh ditutup — incoming tetap masuk, cukup buka lagi.</div>
+      </div>
+      <div class="dock"><button class="btn block lg">Aktifkan penerimaan</button></div>
+    </div>
+  </template>
+</article>
+
+<!-- 06 · menunggu kiriman -->
+<article class="shot" data-page="home">
+  <div class="shot-h"><span class="n">06</span><h3>Menunggu kiriman</h3><span class="route">/ · waiting</span>
+    <span class="note">Status replaces spinner: pending, live, dan tombol berhenti yang selalu ada.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:var(--accent)"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">RafQR</span></span>
+        <span class="spacer"></span><span class="count num"><s></s>29:41</span>
+      </div></div>
+      <div class="page">
+        <div class="split">
+          <div class="colL stack">
+            <div class="stack" style="gap:7px">
+              <span class="badge y"><s style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:block"></s> Menunggu pengirim</span>
+              <h1 class="big">Siap menerima.</h1>
+              <p class="lead">Begitu pengirim kirim, halaman ini otomatis membuka filenya.</p>
+            </div>
+            <div class="stack tight">
+              <div class="linkrow"><span class="u">rafqr.app/u/QM82LP</span>
+                <button class="btn sm"><svg width="14" height="14"><use href="#i-copy"/></svg> Salin</button></div>
+              <div class="row" style="gap:8px">
+                <button class="btn white sm" style="flex:1"><svg width="15" height="15"><use href="#i-share"/></svg> Bagikan</button>
+                <button class="btn white sm" style="flex:1"><svg width="15" height="15"><use href="#i-img"/></svg> Simpan QR</button>
+              </div>
+            </div>
+            <div class="rows">
+              <div class="lrow"><span class="tile y"><svg width="17" height="17"><use href="#i-dl"/></svg></span>
+                <span class="lrow-txt"><span class="t">Menunggu file masuk</span><span class="s">checkpoint tiap 3 detik · hemat baterai</span></span></div>
+              <div class="lrow"><span class="tile y"><svg width="17" height="17"><use href="#i-lock"/></svg></span>
+                <span class="lrow-txt"><span class="t">Sesi terenkripsi</span><span class="s">Isi PIN / E2EE bisa diminta pengirim</span></span></div>
+            </div>
+          </div>
+          <div class="stack" style="justify-items:center;gap:12px">
+            <div class="qrbox">
+              <i class="brk tl"></i><i class="brk tr"></i><i class="brk bl"></i><i class="brk br"></i>
+              <div class="qrmat"><i class="fd a"></i><i class="fd b"></i><i class="fd c"></i><span class="qrbadge">R</span></div>
+            </div>
+            <span class="badge n">Pindai untuk mengirim</span>
+          </div>
+        </div>
+      </div>
+      <div class="dock"><button class="btn white block">Berhenti menerima</button></div>
+    </div>
+  </template>
+</article>
+
+<!-- 07 · cara kerja -->
+<article class="shot" data-page="home">
+  <div class="shot-h"><span class="n">07</span><h3>Penjelasan singkat</h3><span class="route">/ · footer sections</span>
+    <span class="note">Tiga langkah, satu kalimat per langkah. Tidak ada feature grid panjang.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="page narrow stack">
+        <div class="card pad stack" style="gap:14px">
+          <h2 class="mid">Cara kerja</h2>
+          <div class="stack tight">
+            <div class="row" style="align-items:flex-start;gap:12px">
+              <span class="tile y" style="border-radius:8px;font-weight:700;font-size:13px">1</span>
+              <span><span class="t" style="font-weight:600">Pilih file di PC</span><span class="s muted" style="display:block;font-size:13px">Seret ke jendela, atau paste Ctrl+V.</span></span>
+            </div>
+            <div class="row" style="align-items:flex-start;gap:12px">
+              <span class="tile y" style="border-radius:8px;font-weight:700;font-size:13px">2</span>
+              <span><span class="t" style="font-weight:600">Tunjukkan QR / kirim tautan</span><span class="s muted" style="display:block;font-size:13px">QR otomatis, bisa disimpan sebagai gambar.</span></span>
+            </div>
+            <div class="row" style="align-items:flex-start;gap:12px">
+              <span class="tile y" style="border-radius:8px;font-weight:700;font-size:13px">3</span>
+              <span><span class="t" style="font-weight:600">HP buka &amp; unduh</span><span class="s muted" style="display:block;font-size:13px">Bisa unduh semua sekaligus lewat satu file ZIP.</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="rows">
+          <div class="lrow"><span class="tile y"><svg width="17" height="17"><use href="#i-clock"/></svg></span>
+            <span class="lrow-txt"><span class="t">Auto-hapus 30 menit</span><span class="s">Tidak ada data yang menetap di server.</span></span></div>
+          <div class="lrow"><span class="tile y"><svg width="17" height="17"><use href="#i-shield"/></svg></span>
+            <span class="lrow-txt"><span class="t">Tanpa akun</span><span class="s">Tidak perlu email, tidak ada profil.</span></span></div>
+        </div>
+      </div>
+      <footer style="border-top:1px solid var(--line);padding:18px;text-align:center;display:grid;gap:3px">
+        <p class="tiny muted" style="font-weight:600">RafQR · RaffiTech Labs</p>
+        <p class="tiny muted" style="font-size:11.5px">Pakai sendiri · no tracking, no analytics</p>
+      </footer>
+    </div>
+  </template>
+</article>
+
+<!-- 08 · scan -->
+<article class="shot" data-page="scan">
+  <div class="shot-h"><span class="n">08</span><h3>Pindai QR</h3><span class="route">/scan</span>
+    <span class="note">Kamera full-bleed, fallback ketik ID menempel di bawah. Error → Scanner otomatis retry.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/scan</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <button class="btn icon"><svg width="17" height="17"><use href="#i-back"/></svg></button>
+        <span class="brand" style="margin-left:4px"><span class="name">Pindai QR</span></span>
+        <span class="spacer"></span>
+        <button class="btn white sm"><svg width="16" height="16"><use href="#i-img"/></svg> Dari galeri</button>
+      </div></div>
+      <div class="page tight narrow">
+        <div class="camwrap">
+          <div class="cam">
+            <div class="lines"></div>
+            <div class="target"><i></i><i></i><i></i><i></i></div>
+            <div class="beam" style="top:30%"></div>
+            <div class="cap">Arahkan ke QR RafQR</div>
+          </div>
+          <div class="stack" style="gap:12px">
+            <span class="badge y"><svg width="13" height="13"><use href="#i-scan"/></svg> Kamera belakang</span>
+            <div class="field"><label>Atau ketik kode sesi</label>
+              <div class="row" style="gap:8px">
+                <input class="inp m" placeholder="K4X9PL">
+                <button class="btn">Buka</button>
+              </div>
+            </div>
+            <div class="alert">QR ini bukan dari RafQR. Pindai ulang atau ketik kode manual di bawah.</div>
+            <p class="hint">Scanner otomatis pindah ke kamera depan untuk selfie/selfie-QR di masa depan.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 09 · paket diterima -->
+<article class="shot" data-page="dl">
+  <div class="shot-h"><span class="n">09</span><h3>Penerima — paket masuk</h3><span class="route">/d/[id]</span>
+    <span class="note">Gambar &amp; video langsung tampil sendiri di baris — tidak ada tombol pratinjau. Yang perlu ditekan cuma unduh.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/d/K4X9PL</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:var(--accent)"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">RafQR</span></span>
+        <span class="spacer"></span>
+        <span class="badge n"><svg width="12" height="12"><use href="#i-link"/></svg> Publik</span>
+      </div></div>
+      <div class="page tight">
+        <div class="row wrapr" style="align-items:flex-end;gap:10px">
+          <div>
+            <h1 class="big" style="font-size:26px">3 file dari PC</h1>
+            <p class="tiny muted" style="margin-top:3px">Total 12,5 MB · dikirim 2 menit lalu</p>
+          </div>
+          <span class="spacer"></span>
+          <button class="btn sm"><svg width="14" height="14"><use href="#i-dl"/></svg> Unduh semua</button>
+        </div>
+        <div class="rows">
+          <div class="lrow">
+            <span class="img a lg"><svg width="20" height="20"><use href="#i-img"/></svg></span>
+            <span class="lrow-txt"><span class="t">screenshot-maret.png</span><span class="s">2,1 MB · PNG · 1440×1800</span></span>
+            <span class="acts"><button class="btn icon"><svg width="16" height="16"><use href="#i-share"/></svg></button><button class="btn icon"><svg width="16" height="16"><use href="#i-dl"/></svg></button></span>
+          </div>
+          <div class="lrow">
+            <span class="tile y"><svg width="17" height="17"><use href="#i-file"/></svg></span>
+            <span class="lrow-txt"><span class="t">invoice-2026-03.pdf</span><span class="s">840 KB · PDF</span></span>
+            <span class="acts"><button class="btn icon"><svg width="16" height="16"><use href="#i-share"/></svg></button><button class="btn icon"><svg width="16" height="16"><use href="#i-dl"/></svg></button></span>
+          </div>
+          <div class="lrow">
+            <span class="img b lg"><i class="play"></i><i class="dur">0:42</i></span>
+            <span class="lrow-txt"><span class="t">rekap-proyek.mp4</span><span class="s">9,6 MB · Video · 1080p · 0:42</span></span>
+            <span class="acts"><button class="btn icon"><svg width="16" height="16"><use href="#i-share"/></svg></button><button class="btn icon"><svg width="16" height="16"><use href="#i-dl"/></svg></button></span>
+          </div>
+        </div>
+        <div class="sechead"><h4>Pesan</h4>
+          <span class="row" style="gap:6px">
+            <button class="btn white sm"><svg width="13" height="13"><use href="#i-edit"/></svg> Edit</button>
+            <button class="btn white sm"><svg width="13" height="13"><use href="#i-copy"/></svg> Salin</button>
+          </span></div>
+        <div class="msg">Rekap material minggu ini. Bagian keuangan mohon dicek sebelum Jumat ya.</div>
+      </div>
+      <div class="dock">
+        <div class="sum"><span>Sesi berakhir dalam <b class="num">12:04</b></span><span class="muted">otomatis dihapus</span></div>
+        <button class="btn white block"><svg width="16" height="16"><use href="#i-shield"/></svg> File tetap di perangkat saya</button>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 10 · pratinjau gambar -->
+<article class="shot" data-page="dl">
+  <div class="shot-h"><span class="n">10</span><h3>Penerima — pratinjau gambar</h3><span class="route">/d/[id] · preview</span>
+    <span class="note">Gambar dibuka full-screen di atas halaman. Tutup selalu diibu jari, panah untuk pindah file, zoom cubit-ganda.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/d/K4X9PL</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:var(--accent)"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">RafQR</span></span>
+        <span class="spacer"></span><span class="badge n">Publik</span>
+      </div></div>
+      <div class="page tight" style="opacity:.28;pointer-events:none">
+        <div class="row"><div><h1 class="big" style="font-size:24px">3 file dari PC</h1></div><span class="spacer"></span></div>
+        <div class="rows">
+          <div class="lrow"><span class="img a"><svg width="17" height="17"><use href="#i-img"/></svg></span>
+            <span class="lrow-txt"><span class="t">screenshot-maret.png</span><span class="s">2,1 MB · PNG</span></span></div>
+          <div class="lrow"><span class="tile y"><svg width="17" height="17"><use href="#i-file"/></svg></span>
+            <span class="lrow-txt"><span class="t">invoice-2026-03.pdf</span><span class="s">840 KB · PDF</span></span></div>
+          <div class="lrow"><span class="tile y"><svg width="17" height="17"><use href="#i-file"/></svg></span>
+            <span class="lrow-txt"><span class="t">rekap-proyek.mp4</span><span class="s">9,6 MB · Video</span></span></div>
+        </div>
+        <div class="msg">Rekap material minggu ini. Bagian keuangan mohon dicek sebelum Jumat ya.</div>
+      </div>
+      <div class="lb">
+        <div class="lb-top">
+          <button class="btn icon"><svg width="17" height="17"><use href="#i-x"/></svg></button>
+          <span class="t">screenshot-maret.png</span>
+          <span class="spacer"></span>
+          <span class="badge" style="background:rgba(255,255,255,.12);color:#fff">2,1 MB · PNG</span>
+        </div>
+        <div class="lb-stage"><div class="vimg"><span style="font:600 12px/1 ui-monospace,monospace;background:rgba(0,0,0,.35);padding:6px 9px;border-radius:7px">screenshot-maret.png</span></div></div>
+        <div class="lb-nav">
+          <button class="btn icon"><svg width="16" height="16"><use href="#i-prev"/></svg></button>
+          <span class="dots"><i class="on"></i><i></i><i></i></span>
+          <button class="btn icon"><svg width="16" height="16"><use href="#i-next"/></svg></button>
+          <span class="num">1 / 3</span>
+        </div>
+        <div class="lb-foot">
+          <p class="tiny" style="color:rgba(255,255,255,.6);text-align:center">Cubit-ganda untuk zoom · geser untuk pindah area</p>
+          <div class="row" style="gap:8px">
+            <button class="btn white" style="flex:1"><svg width="15" height="15"><use href="#i-share"/></svg> Bagikan</button>
+            <button class="btn yellow" style="flex:1"><svg width="15" height="15"><use href="#i-dl"/></svg> Unduh</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 11 · edit pesan -->
+<article class="shot" data-page="dl">
+  <div class="shot-h"><span class="n">11</span><h3>Penerima — edit pesan</h3><span class="route">/d/[id] · text editing</span>
+    <span class="note">Teks tetap bisa diedit setelah diterima. Hasil edit tinggal di perangkat ini, tidak pernah dikirim balik ke server.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/d/K4X9PL</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:var(--accent)"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">RafQR</span></span>
+        <span class="spacer"></span><span class="badge n">Publik</span>
+      </div></div>
+      <div class="page tight">
+        <div class="row wrapr" style="align-items:flex-end;gap:10px">
+          <div><h1 class="big" style="font-size:24px">3 file dari PC</h1>
+            <p class="tiny muted" style="margin-top:3px">Total 12,5 MB · 2 menit lalu</p></div>
+          <span class="spacer"></span>
+          <button class="btn sm"><svg width="14" height="14"><use href="#i-dl"/></svg> Unduh semua</button>
+        </div>
+        <div class="rows">
+          <div class="lrow"><span class="img a"><svg width="17" height="17"><use href="#i-img"/></svg></span>
+            <span class="lrow-txt"><span class="t">screenshot-maret.png</span><span class="s">2,1 MB · PNG</span></span>
+            <span class="acts"><button class="btn icon"><svg width="16" height="16"><use href="#i-eye"/></svg></button><button class="btn icon"><svg width="16" height="16"><use href="#i-dl"/></svg></button></span></div>
+          <div class="lrow"><span class="tile y"><svg width="17" height="17"><use href="#i-file"/></svg></span>
+            <span class="lrow-txt"><span class="t">invoice-2026-03.pdf</span><span class="s">840 KB · PDF</span></span>
+            <span class="acts"><button class="btn icon"><svg width="16" height="16"><use href="#i-dl"/></svg></button></span></div>
+        </div>
+        <div class="card pad editor">
+          <div class="sechead">
+            <span class="row" style="gap:8px"><span class="sml" style="font-weight:650">Pesan dari PC</span>
+              <span class="badge n">bisa diedit</span></span>
+            <span class="saveflash"><svg width="13" height="13"><use href="#i-check"/></svg> Tersimpan</span>
+          </div>
+          <textarea class="inp">Rekap material minggu ini. Bagian keuangan mohon dicek sebelum Jumat ya. — revise: masukkan angka Q1 juga ya.</textarea>
+          <div class="ednote"><svg width="14" height="14"><use href="#i-lock"/></svg>
+            <span>Disimpan di perangkat ini saja · tidak dikirim balik ke server</span></div>
+          <div class="row" style="gap:8px">
+            <button class="btn white sm" style="flex:1">Batal</button>
+            <button class="btn sm" style="flex:1"><svg width="14" height="14"><use href="#i-check"/></svg> Simpan perubahan</button>
+          </div>
+        </div>
+        <div class="info"><svg width="15" height="15"><use href="#i-refresh"/></svg> Edit terakhir 2 menit lalu · dipulihkan otomatis saat reopen.</div>
+      </div>
+      <div class="dock">
+        <div class="sum"><span>Pesan siap dibagikan</span><span class="muted">.txt</span></div>
+        <div class="row" style="gap:8px">
+          <button class="btn white" style="flex:1"><svg width="16" height="16"><use href="#i-copy"/></svg> Salin teks</button>
+          <button class="btn" style="flex:1"><svg width="16" height="16"><use href="#i-share"/></svg> Bagikan</button>
+        </div>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 12 · PIN -->
+<article class="shot" data-page="dl">
+  <div class="shot-h"><span class="n">12</span><h3>Penerima — terkunci PIN</h3><span class="route">/d/[id] · locked</span>
+    <span class="note">PIN jadi empat kotak, auto-lanjut antar kotak, paste 4 digit langsung diterima.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/d/K4X9PL</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s center">
+      <div class="card pad stack" style="width:100%;max-width:340px;justify-items:center">
+        <span class="tile y" style="width:48px;height:48px;border-radius:15px"><svg width="22" height="22"><use href="#i-lock"/></svg></span>
+        <h2 class="mid">Sesi terkunci</h2>
+        <p class="lead" style="text-align:center;font-size:13.5px">Minta PIN 4 angka dari pengirim. Tidak ada batas percobaan — datamu sendiri, bukan bank.</p>
+        <div class="row" style="gap:9px;margin-top:4px">
+          <span class="pinbox">4</span><span class="pinbox">8</span><span class="pinbox">3</span><span class="pinbox">1</span>
+        </div>
+        <p class="err">PIN salah, coba lagi.</p>
+        <button class="btn block lg">Buka isi sesi</button>
+        <p class="hint">Sesi <span class="mono">K4X9PL</span> · 24:11 tersisa</p>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 13 · E2EE -->
+<article class="shot" data-page="dl">
+  <div class="shot-h"><span class="n">13</span><h3>Penerima — dekripsi E2EE</h3><span class="route">/d/[id] · e2ee</span>
+    <span class="note">Penjelasan singkat soal kunci sebelum input, supaya recipient tahu persis kunci mana yang dipakai.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/d/K4X9PL</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s center">
+      <div class="card pad stack" style="width:100%;max-width:360px;justify-items:center">
+        <span class="tile y" style="width:48px;height:48px;border-radius:15px"><svg width="22" height="22"><use href="#i-shield"/></svg></span>
+        <h2 class="mid">File terenkripsi</h2>
+        <p class="lead" style="text-align:center;font-size:13.5px">Pengirim kirim kuncinya lewat chat terpisah. Isi di bawah untuk membuka file di perangkat ini.</p>
+        <div class="field" style="width:100%;margin-top:4px">
+          <label>Kunci rahasia</label>
+          <input class="inp m" style="text-align:center" value="a7f3-x91q-4tzm">
+        </div>
+        <p class="err">Kunci tidak cocok dengan file ini.</p>
+        <button class="btn block lg">Dekripsi di perangkat ini</button>
+        <p class="hint">Kunci tidak pernah dikirim ke server mana pun.</p>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 14 · kedaluwarsa -->
+<article class="shot" data-page="dl">
+  <div class="shot-h"><span class="n">14</span><h3>Penerima — sesi habis</h3><span class="route">/d/[id] · error</span>
+    <span class="note">404 dengan penjelasan &amp; jalan keluar, bukan layar kosong.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/d/Z81Q</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s center">
+      <div class="stack" style="justify-items:center;max-width:340px">
+        <span class="big404">404</span>
+        <h2 class="mid">Sesi sudah habis</h2>
+        <p class="lead" style="text-align:center">Semua sesi dihapus otomatis 30 menit setelah dibuat, supaya tidak ada jejak yang tertinggal.</p>
+        <div class="info" style="width:100%"><svg width="15" height="15"><use href="#i-clock"/></svg> Sesi ini dibuat 41 menit lalu.</div>
+        <button class="btn lg" style="padding:0 26px">Minta sesi baru ke pengirim</button>
+        <button class="btn ghost">Buka beranda</button>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 15 · upload dari HP -->
+<article class="shot" data-page="up">
+  <div class="shot-h"><span class="n">15</span><h3>Upload dari HP</h3><span class="route">/u/[id]</span>
+    <span class="note">Halaman yang dibuka QR. Fokus: pilih file → kirim. Placeholder tombol menyebut jumlah &amp; ukuran.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/u/QM82LP</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:var(--accent)"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">RafQR</span></span>
+        <span class="spacer"></span><span class="badge y">Kirim ke PC</span>
+      </div></div>
+      <div class="page tight narrow">
+        <div class="stack" style="gap:6px">
+          <h1 class="big" style="font-size:26px">Kirim ke PC</h1>
+          <p class="lead">Sesi <span class="mono">QM82LP</span> · PC sedang menunggu file kamu.</p>
+        </div>
+        <div class="drop">
+          <span class="ico"><svg width="22" height="22"><use href="#i-cloudup"/></svg></span>
+          <span class="t">Pilih file dari HP</span>
+          <span class="s">Foto, video, dokumen · maks 50 MB per file</span>
+          <button class="btn sm" style="margin-top:4px">Buka pilih file</button>
+        </div>
+        <div class="rows">
+          <div class="lrow"><span class="img a"><svg width="17" height="17"><use href="#i-img"/></svg></span>
+            <span class="lrow-txt"><span class="t">IMG_0412.HEIC</span><span class="s">3,2 MB · siap</span></span>
+            <span class="acts"><button class="btn icon"><svg width="15" height="15"><use href="#i-x"/></svg></button></span></div>
+          <div class="lrow"><span class="tile y"><svg width="17" height="17"><use href="#i-file"/></svg></span>
+            <span class="lrow-txt"><span class="t">kontrak.pdf</span><span class="s">1,1 MB · siap</span></span>
+            <span class="acts"><button class="btn icon"><svg width="15" height="15"><use href="#i-x"/></svg></button></span></div>
+        </div>
+        <textarea class="inp" placeholder="Tambah pesan untuk PC (opsional)…"></textarea>
+      </div>
+      <div class="dock">
+        <div class="sum"><span>2 file · 4,3 MB</span><span class="muted">~3 detik</span></div>
+        <button class="btn block lg">Kirim ke PC sekarang</button>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 16 · upload sesi mati -->
+<article class="shot" data-page="up">
+  <div class="shot-h"><span class="n">16</span><h3>Upload — sesi mati</h3><span class="route">/u/[id] · preflight fail</span>
+    <span class="note">Cek sebelum interaksi: input langsung mati, jadi tidak ada file 50 MB terbuang sia-sia.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/u/OLD11</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:var(--accent)"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">RafQR</span></span>
+        <span class="spacer"></span><span class="badge r">Sesi berakhir</span>
+      </div></div>
+      <div class="page tight narrow">
+        <div class="stack" style="gap:6px">
+          <h1 class="big" style="font-size:26px">Sesi sudah tidak aktif</h1>
+          <p class="lead">PC-nya sudah berhenti menunggu — kemungkinan lewat 30 menit.</p>
+        </div>
+        <div class="alert"><svg width="16" height="16" style="flex:none;margin-top:1px"><use href="#i-clock"/></svg>
+          <span>Minta pengirim membuat sesi baru, lalu scan QR yang baru.</span></div>
+        <div class="card pad stack" style="opacity:.45;pointer-events:none">
+          <div class="drop"><span class="ico"><svg width="22" height="22"><use href="#i-cloudup"/></svg></span>
+            <span class="t">Pilih file dari HP</span><span class="s">Pindai ulang dulu</span></div>
+        </div>
+        <button class="btn block lg">Pindai QR sesi baru</button>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 17 · admin login -->
+<article class="shot" data-page="admin">
+  <div class="shot-h"><span class="n">17</span><h3>Admin — gate akses</h3><span class="route">/admin</span>
+    <span class="note">Tetap gelap — alat internal harus terasa berbeda dari app publik.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/admin</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s dk center">
+      <div class="stack" style="width:100%;max-width:300px">
+        <span class="mark" style="--inv:#0B0B0C;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;margin:0 auto"><svg width="26" height="26"><use href="#i-logo"/></svg></span>
+        <h1 class="big" style="font-size:19px;text-align:center">Admin dashboard</h1>
+        <p class="lead" style="text-align:center;font-size:13px">Masukkan admin key lokal.</p>
+        <input class="inp m" type="password" placeholder="••••••••" style="text-align:center;letter-spacing:.3em">
+        <p class="err">Key salah.</p>
+        <button class="btn block">Masuk</button>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 18 · admin dashboard -->
+<article class="shot" data-page="admin">
+  <div class="shot-h"><span class="n">18</span><h3>Admin — analitik</h3><span class="route">/admin · login</span>
+    <span class="note">KPI sebaris, grafik ringan, tanpa chrome berlebihan. Cukup buat "berapa yang terpakai".</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/admin</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s dk">
+      <div class="top"><div class="top-in">
+        <span class="brand"><span class="mark" style="--inv:#0B0B0C"><svg width="17" height="17"><use href="#i-logo"/></svg></span><span class="name">Admin</span></span>
+        <span class="spacer"></span><span class="sysbadge">system ok</span>
+      </div></div>
+      <div class="page">
+        <div class="kgrid">
+          <div class="card kv"><span class="k">TERKIRIM</span><span class="v num">2,84 <small>GB</small></span></div>
+          <div class="card kv"><span class="k">SESI SELESAI</span><span class="v num">1.204</span></div>
+          <div class="card kv"><span class="k">PENGUNJUNG</span><span class="v num">8.912</span></div>
+          <div class="card kv"><span class="k">FILE TERBESAR</span><span class="v num" style="font-size:15px;word-break:break-all">dataset-raw.zip</span></div>
+        </div>
+        <div class="sechead"><h4 style="color:#8B94A3">Aktivitas 7 hari</h4><button class="btn white sm">Sync</button></div>
+        <div class="chart">
+          <div class="c"><b style="height:38%"></b><s>Sen</s></div>
+          <div class="c"><b style="height:56%"></b><s>Sel</s></div>
+          <div class="c"><b style="height:44%"></b><s>Rab</s></div>
+          <div class="c"><b style="height:73%"></b><s>Kam</s></div>
+          <div class="c"><b style="height:60%"></b><s>Jum</s></div>
+          <div class="c"><b style="height:88%"></b><s>Sab</s></div>
+          <div class="c"><b style="height:100%"></b><s>Min</s></div>
+        </div>
+        <div class="card pad" style="font-size:12.5px;color:#8B94A3;line-height:1.6">
+          Angka diambil langsung dari Supabase. Tidak ada visitor tracking di halaman publik — murni untuk lihat storage &amp; traffic.
+        </div>
+      </div>
+    </div>
+  </template>
+</article>
+
+<!-- 19 · debug -->
+<article class="shot" data-page="dbg">
+  <div class="shot-h"><span class="n">19</span><h3>Debug — uji upload R2</h3><span class="route">/debug-upload</span>
+    <span class="note">Alat internal: log, progress, checklist. Tetap satu halaman, tanpa navigasi.</span></div>
+  <div class="shots">
+    <div class="frame phone"><label>Mobile · 390px</label><div class="slot" data-slot></div></div>
+    <div class="frame desktop"><label>Desktop · 1440px</label><div class="dbar"><i></i><i></i><i></i><b>rafqr.app/debug-upload</b></div><div class="slot" data-slot></div></div>
+  </div>
+  <template>
+    <div class="s dim">
+      <div class="page tight narrow stack">
+        <h1 class="big" style="font-size:24px">R2 upload debug</h1>
+        <span class="filebtn"><svg width="16" height="16"><use href="#i-file"/></svg> test-upload.png · 248 KB</span>
+        <div class="card pad stack" style="gap:10px">
+          <div class="row"><span class="badge g"><svg width="13" height="13"><use href="#i-check"/></svg> Berhasil</span>
+            <span class="spacer"></span><span class="tiny muted num">100%</span></div>
+          <div class="progline"><i style="width:100%"></i></div>
+        </div>
+        <div class="logbox">
+          <b>logs</b><br>
+          [14:02:11] file dipilih · 248112 bytes<br>
+          [14:02:12] presigned URL + PUT ke R2…<br>
+          [14:02:13] object tersimpan · tmp/K4X9PL/test.png
+        </div>
+        <div class="card pad stack tight">
+          <h3 class="sml">Checklist</h3>
+          <span class="tick"><i><svg width="10" height="10"><use href="#i-check"/></svg></i>R2_* env terisi</span>
+          <span class="tick"><i><svg width="10" height="10"><use href="#i-check"/></svg></i>Bucket <span class="mono">rafqr</span> ada</span>
+          <span class="tick"><i></i>CORS mengizinkan PUT dari origin app</span>
+          <span class="tick"><i></i>Lifecycle rule auto-delete aktif</span>
+        </div>
+      </div>
+    </div>
+  </template>
+</article>
+
+</div>
+
+<script>
+// Each <template> is the single source of a screen; it is cloned into both the
+// phone and the desktop frame, then container queries adapt it per width.
+document.querySelectorAll('.shot').forEach(shot => {
+  const tpl = shot.querySelector('template');
+  if (!tpl) return;
+  shot.querySelectorAll('[data-slot]').forEach(slot => slot.append(tpl.content.cloneNode(true)));
+});
+const chips = [...document.querySelectorAll('.chip')];
+const shots = [...document.querySelectorAll('.shot')];
+chips.forEach(chip => chip.addEventListener('click', () => {
+  const on = chip.getAttribute('aria-pressed') === 'true';
+  const f = on ? 'all' : chip.dataset.f;
+  chips.forEach(c => c.setAttribute('aria-pressed', c.dataset.f === f));
+  shots.forEach(s => { s.hidden = f !== 'all' && s.dataset.page !== f; });
+}));
+const spin = document.createElement('style');
+spin.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+document.head.append(spin);
+</script>
+</body>
+</html>

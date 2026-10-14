@@ -3,130 +3,118 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { PageShell, SiteHeader } from '../../components/ui';
-import { ArrowLeftIcon, ScanIcon } from '../../components/icons';
+import { AppShell, TopBarBack, Btn, Field } from '../../components/ui';
+import { ScanIcon, WarningIcon } from '../../components/icons';
 
 export default function QRScannerPage() {
   const router = useRouter();
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [manualId, setManualId] = useState('');
 
   useEffect(() => {
-    // Initializing scanner
+    if (!document.getElementById('qr-reader')) return;
     const scanner = new Html5QrcodeScanner(
-      "qr-reader",
+      'qr-reader',
       {
         fps: 10,
-        qrbox: { width: 250, height: 250 },
-        rememberLastUsedCamera: true,
-        supportedScanTypes: [0], // Camera only
-        videoConstraints: { facingMode: "environment" } // Prefer back camera
+        // Fixed 250px overflows small phone viewports and silently crops.
+        qrbox: (w, h) => ({ width: Math.floor(Math.min(w, h) * 0.75), height: Math.floor(Math.min(w, h) * 0.75) }),
+        rememberLastUsedCamera: false,
+        supportedScanTypes: [0],
+        videoConstraints: { facingMode: 'environment' },
       },
-      /* verbose= */ false
+      false,
     );
 
-    const onScanSuccess = (decodedText: string) => {
+    const onScanSuccess = (decoded: string) => {
       try {
-        const url = new URL(decodedText);
-        // Only redirect if it's our site
+        const url = new URL(decoded);
         if (url.origin === window.location.origin) {
-          scanner.clear().catch(console.error);
+          scanner.clear().catch(() => {});
           router.push(url.pathname + url.search);
         } else {
-          setError('Link QR tidak valid. Pastikan QR berasal dari RafQR.');
+          setError('QR ini bukan dari RafQR. Pindai ulang, atau ketik kode manual di bawah.');
         }
-      } catch (err) {
-        setError('QR bukan tautan yang valid.');
+      } catch {
+        setError('QR bukan tautan yang valid. Pindai ulang atau ketik kode manual.');
       }
     };
 
-    const onScanFailure = (error: string) => {
-      // Just keep scanning
-    };
-
-    scanner.render(onScanSuccess, onScanFailure);
+    scanner.render(onScanSuccess, () => { /* keeps scanning */ });
     scannerRef.current = scanner;
-
-    return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(err => console.error("Failed to clear scanner", err));
-      }
-    };
+    return () => { scannerRef.current?.clear().catch(() => {}); };
   }, [router]);
 
+  const openManual = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = manualId.trim().replace(/[^a-zA-Z0-9-_]/g, '');
+    if (!clean) { setError('Masukkan kode sesi dulu.'); return; }
+    scannerRef.current?.clear().catch(() => {});
+    router.push(`/d/${clean}`);
+  };
+
   return (
-    <PageShell>
-      <SiteHeader
-        label="RafQR Scan"
-        onLogoClick={() => router.push('/')}
-        right={
-          <button onClick={() => router.push('/')} aria-label="Kembali" className="neo-btn bg-ink text-white p-2.5">
-            <ArrowLeftIcon />
-          </button>
-        }
-      />
+    <AppShell>
+      <TopBarBack onBack={() => router.push('/')} title="Pindai QR" />
 
-      <main className="max-w-xl mx-auto w-full flex-1 flex flex-col justify-center px-5 py-10 animate-fade-in pb-20">
-        <div className="space-y-8">
-          <div className="space-y-3 text-center">
-             <span className="w-16 h-16 bg-accent border-2 border-ink rounded-lg shadow-neo flex items-center justify-center mx-auto text-ink"><ScanIcon className="w-8 h-8" /></span>
-             <h2 className="text-3xl font-extrabold tracking-tight">Pindai QR</h2>
-             <p className="text-sm font-medium text-muted">Arahkan kamera ke QR Code untuk terhubung otomatis.</p>
+      <div className="page tight narrow">
+        <div className="stack" style={{ gap: 14 }}>
+          <div className="card flat" style={{ padding: 0, overflow: 'hidden' }}>
+            <div id="qr-reader" style={{ width: '100%' }} />
           </div>
 
-          <div className="neo-card p-2 overflow-hidden">
-            <div id="qr-reader" className="w-full !border-none overflow-hidden rounded-md" />
+          <div className="row" style={{ gap: 10 }}>
+            <span className="badge y"><ScanIcon size={13} /> Kamera belakang</span>
           </div>
+
+          <form onSubmit={openManual} className="stack tight">
+            <Field label="Atau ketik kode sesi" htmlFor="sid">
+              <div className="row" style={{ gap: 8 }}>
+                <input
+                  id="sid"
+                  className="inp m"
+                  value={manualId}
+                  onChange={(e) => setManualId(e.target.value.toUpperCase())}
+                  placeholder="K4X9PL"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <Btn type="submit">Buka</Btn>
+              </div>
+            </Field>
+          </form>
 
           {error && (
-            <div className="bg-danger border-2 border-ink rounded-md p-4 text-sm font-bold text-white text-center shadow-neo">
-               {error}
+            <div className="alert" role="alert">
+              <WarningIcon size={16} style={{ flex: 'none', marginTop: 1 }} />
+              <span>{error}</span>
             </div>
           )}
-        </div>
-      </main>
 
-      {/* Override html5-qrcode styles to match branding */}
+          <p className="hint">Scanner tetap mencoba membaca. Kalau kamera tidak diizinkan, ketik kode sesi secara manual di atas.</p>
+        </div>
+      </div>
+
       <style jsx global>{`
-        #qr-reader { border: none !important; }
-        #qr-reader__dashboard { padding: 20px !important; background: transparent !important; }
+        #qr-reader { border: none !important; background: transparent !important; }
         #qr-reader__dashboard_section_csr span button,
         #qr-reader__dashboard_section_csr button {
-          background: #141414 !important;
-          color: #fff !important;
-          font-weight: 700 !important;
-          font-size: 14px !important;
-          padding: 10px 20px !important;
-          border: 2px solid #141414 !important;
-          border-radius: 8px !important;
-          box-shadow: 3px 3px 0px 0px #141414 !important;
-          transition: all 0.2s !important;
-        }
-        #qr-reader__dashboard_section_csr button:hover {
-          box-shadow: none !important;
-          transform: translate(3px, 3px) !important;
-          background: #FFD100 !important;
-          color: #141414 !important;
+          background: #111113 !important; color: #fff !important;
+          font-weight: 600 !important; font-size: 13.5px !important;
+          padding: 10px 18px !important; border: 0 !important;
+          border-radius: 12px !important; box-shadow: 0 1px 2px rgba(17,17,19,.05) !important;
+          min-height: 44px !important;
         }
         #qr-reader__camera_selection {
-          background: #fff !important;
-          color: #141414 !important;
-          border: 2px solid #141414 !important;
-          border-radius: 8px !important;
-          font-size: 14px !important;
-          font-weight: 600 !important;
-          padding: 10px !important;
-          margin-bottom: 16px !important;
-          outline: none;
-          box-shadow: 3px 3px 0px 0px #141414 !important;
+          background: #fff !important; color: #111113 !important;
+          border: 1px solid #D9D6D1 !important; border-radius: 12px !important;
+          font-size: 14px !important; padding: 10px !important; margin-bottom: 16px !important;
         }
-        #qr-reader__status_span {
-           font-size: 12px !important;
-           font-weight: 600 !important;
-           color: #6B6B66 !important;
-        }
+        #qr-reader__status_span { font-size: 12px !important; font-weight: 600 !important; color: #71717A !important; }
         #qr-reader__dashboard_section_swaplink { display: none !important; }
+        #qr-reader video { border-radius: 12px !important; }
       `}</style>
-    </PageShell>
+    </AppShell>
   );
 }

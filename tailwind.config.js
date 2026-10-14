@@ -8,57 +8,54 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
+        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       colors: {
-        // Base neutrals
-        paper: '#FBFBF9',
-        ink: '#141414',
-        muted: '#6B6B66',
-        line: '#141414',
-        // Single signature accent
-        accent: '#FFD100',
-        // Semantic states only
-        ok: '#3FA34D',
-        danger: '#E11D48',
-      },
-      borderRadius: {
-        sm: '8px',
-        md: '12px',
-        lg: '16px',
+        paper: '#FAFAF9',
+        surface: '#FFFFFF',
+        ink: '#111113',
+        muted: '#71717A',
+        faint: '#A1A1AA',
+        line: '#E9E7E3',
+        line2: '#D9D6D1',
+        soft: '#F4F4F1',
+        accent: '#FACC15',
+        'accent-soft': '#FEF9C3',
+        ok: '#16A34A',
+        'ok-soft': '#EAF7EE',
+        danger: '#DC2626',
+        'danger-soft': '#FEF0F0',
       },
       boxShadow: {
-        'neo': '3px 3px 0px 0px #141414',
-        'neo-lg': '5px 5px 0px 0px #141414',
-        'neo-hover': '2px 2px 0px 0px #141414',
+        s: '0 1px 2px rgba(17,17,19,.05)',
+        m: '0 1px 2px rgba(17,17,19,.04), 0 12px 28px -18px rgba(17,17,19,.35)',
+        l: '0 24px 60px -28px rgba(17,17,19,.45)',
       },
-      borderWidth: {
-        '3': '3px',
+      borderRadius: {
+        s: '8px',
+        m: '12px',
+        l: '18px',
+        xl: '24px',
       },
       screens: {
-        'xs': '480px',
+        xs: '480px',
+        wide: '620px',
+        desk: '760px',
       },
       keyframes: {
+        pulse: { '50%': { opacity: '0.25' } },
         'fade-in': {
           from: { opacity: '0', transform: 'translateY(8px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
-        'fade-in-up': {
-          from: { opacity: '0', transform: 'translateY(24px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
-        },
-        'toast-in': {
-          from: { opacity: '0', transform: 'translateY(12px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
-        },
+        spin: { to: { transform: 'rotate(360deg)' } },
       },
       animation: {
+        pulse: 'pulse 1.6s infinite',
         'fade-in': 'fade-in 0.3s ease-out both',
-        'fade-in-up': 'fade-in-up 0.4s ease-out both',
-        'toast-in': 'toast-in 0.2s ease-out forwards',
       },
     },
   },
   plugins: [],
-}
+};

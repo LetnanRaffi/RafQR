@@ -1,488 +1,734 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { uploadFileToR2 } from '../lib/r2-client';
 import { encryptData } from '../lib/crypto';
 import { nanoid } from 'nanoid';
-import BrandedQR from '../components/BrandedQR';
+import QrBox from '../components/BrandedQR';
+import SiteFooter from '../components/Footer';
 import { toast } from '../components/toast';
-import { PageShell, SiteHeader, SiteFooter, Toggle } from '../components/ui';
 import {
-  XIcon, ShareIcon, MicIcon, StopIcon, DiceIcon, RefreshIcon,
-  CloudUpIcon, BoltIcon, ShieldIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon,
+  AppShell, TopBar, Btn, Segmented, Tabs, Dropzone, FileRow, Toggle, Disclosure,
+  Field, Countdown, useCountdown, Copied,
+} from '../components/ui';
+import {
+  ScanIcon, CloudUpIcon, DownloadIcon, ShareIcon, MicIcon, StopIcon, RefreshIcon,
+  CopyIcon, CheckIcon, BoltIcon, ShieldIcon, ClockIcon, XIcon,
 } from '../components/icons';
+import { formatSize } from '../lib/format';
+import { MAX_FILE_BYTES, purgeUploads, trackTransfer, trackVisit } from '../lib/session';
+import { formatLimit } from '../lib/limits';
 
-// ─── Types ───────────────────────────────────────────────────
-interface UploadedFile { fileName: string; fileSize: number; fileType: string; firebaseUrl: string; storageRef: string; }
-interface HistoryItem { id: string; type: 'send' | 'receive'; createdAt: number; title: string; }
 type Mode = 'send' | 'receive';
-type Step = 'input' | 'success' | 'waiting';
+type SendTab = 'files' | 'text';
+type Step = 'input' | 'uploading' | 'success' | 'waiting';
+type RowStatus = 'queued' | 'uploading' | 'done' | 'error';
 
-export default function UploadPage() {
+interface Row {
+  key: string;
+  file: File;
+  status: RowStatus;
+  progress: number;
+  error?: string;
+}
+
+interface UploadedFile { fileName: string; fileSize: number; fileType: string; firebaseUrl: string; storageRef: string; }
+
+export default function HomePage() {
+  const [mode, setMode] = useState<Mode>('send');
+  const [sendTab, setSendTab] = useState<SendTab>('files');
   const [step, setStep] = useState<Step>('input');
-  const [activeMode, setActiveMode] = useState<Mode>('send');
 
-  // Data State
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
   const [textContent, setTextContent] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [overallProgress, setOverallProgress] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+
   const [uniqueId, setUniqueId] = useState<string | null>(null);
+  const [ttl, setTtl] = useState<number | null>(null);
+  const secondsLeft = useCountdown(ttl);
+  const [recipientOpened, setRecipientOpened] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [previews, setPreviews] = useState<Record<string, string>>({});
-  const [qrSize, setQrSize] = useState(240);
-  const [downloadedAtLeastOnce, setDownloadedAtLeastOnce] = useState(false);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
 
-  // Settings Toggles
-  const [ghostMode, setGhostMode] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [pinMode, setPinMode] = useState(false);
   const [pinCode, setPinCode] = useState('');
   const [e2eeEnabled, setE2eeEnabled] = useState(false);
   const [encryptionKey, setEncryptionKey] = useState('');
   const [customId, setCustomId] = useState('');
-  const [isManualId, setIsManualId] = useState(false);
+  const [useCustomId, setUseCustomId] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const mediaRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  // Audio Recording State
-  const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const totalSize = rows.reduce((s, r) => s + r.file.size, 0);
+  const shareUrl = typeof window !== 'undefined' && uniqueId ? `${window.location.origin}/d/${uniqueId}` : '';
+  const receiveUrl = typeof window !== 'undefined' && uniqueId ? `${window.location.origin}/u/${uniqueId}` : '';
+  const activeUrl = step === 'waiting' ? receiveUrl : shareUrl;
 
+  /* ── audio note ───────────────────────────────────────────────── */
   const startRecording = async () => {
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      toast('Browser ini tidak mendukung rekam audio.', 'error');
+      return;
+    }
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      mediaRecorderRef.current.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const file = new File([audioBlob], `AudioNote-${nanoid(6)}.webm`, { type: 'audio/webm' });
-        setSelectedFiles(p => [...p, file]);
-        audioChunksRef.current = [];
-        stream.getTracks().forEach(track => track.stop());
-        toast('Catatan suara ditambahkan.', 'success');
-      };
-      audioChunksRef.current = [];
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-    } catch (err) {
-      toast('Izin mikrofon ditolak atau tidak didukung.', 'error');
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      toast('Izin mikrofon ditolak. Aktifkan izin mikrofon di pengaturan browser.', 'error');
+      return;
     }
+    const rec = new MediaRecorder(stream, { mimeType });
+    rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+    rec.onstop = () => {
+      const ext = mimeType === 'audio/mp4' ? 'm4a' : 'webm';
+      const file = new File(chunksRef.current as unknown as BlobPart[], `Catatan-${nanoid(6)}.${ext}`, { type: mimeType });
+      addFiles([file]);
+      chunksRef.current = [];
+      stream.getTracks().forEach((t) => t.stop());
+    };
+    chunksRef.current = [];
+    rec.start();
+    mediaRef.current = rec;
+    setIsRecording(true);
   };
 
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setIsRecording(false);
-  };
+  /* ── file list ────────────────────────────────────────────────── */
+  const addFiles = useCallback((files: File[]) => {
+    setError(null);
+    setRows((prev) => [
+      ...prev,
+      ...files.map((file) => ({ key: `${file.name}-${file.size}-${nanoid(6)}`, file, status: 'queued' as RowStatus, progress: 0 })),
+    ]);
+  }, []);
 
-  const generateSecureKey = () => setEncryptionKey(nanoid(16));
-  const generateSecurePin = () => setPinCode(Math.floor(1000 + Math.random() * 9000).toString());
+  const removeRow = (key: string) => setRows((prev) => prev.filter((r) => r.key !== key));
 
+  // Ctrl+V anywhere on the page drops files into the list.
   useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (step !== 'input' || mode !== 'send') return;
+      const files = Array.from(e.clipboardData?.files || []);
+      if (files.length > 0) { e.preventDefault(); addFiles(files); }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [addFiles, mode, step]);
+
+  /* ── session polling ──────────────────────────────────────────── */
+  useEffect(() => {
+    trackVisit();
     const saved = localStorage.getItem('rafqr_history');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const fresh = parsed.filter((i: HistoryItem) => Date.now() - i.createdAt < 1800000);
-        setHistory(fresh);
-      } catch (e) {}
-    }
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved).filter((i: { createdAt: number }) => Date.now() - i.createdAt < 1800000);
+      localStorage.setItem('rafqr_history', JSON.stringify(parsed));
+    } catch { /* corrupt history is not worth a dialog */ }
   }, []);
-
-  useEffect(() => {
-    const handleResize = () => setQrSize(window.innerWidth < 640 ? 200 : 280);
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    if (activeMode === 'receive' && !isManualId && !customId) {
-      setCustomId(nanoid(8).toUpperCase());
-    }
-  }, [activeMode, isManualId, customId]);
-
-  useEffect(() => {
-    const newPs: Record<string, string> = {};
-    selectedFiles.forEach(f => { if (f.type.startsWith('image/')) newPs[`${f.name}-${f.lastModified}`] = URL.createObjectURL(f); });
-    setPreviews(newPs);
-    return () => Object.values(newPs).forEach(url => URL.revokeObjectURL(url));
-  }, [selectedFiles]);
 
   useEffect(() => {
     if ((step !== 'waiting' && step !== 'success') || !uniqueId) return;
-    const pollInterval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/session?id=${uniqueId}`);
-        const result = await res.json();
-        if (step === 'waiting' && res.ok && result.data && (result.data.files || (result.data.textContent && result.data.textContent !== 'WAITING_FOR_UPLOAD'))) {
-           window.location.href = `/d/${uniqueId}`;
-        }
-        if (step === 'success' && res.ok && result.data && result.data.isDownloaded && !downloadedAtLeastOnce) {
-           setDownloadedAtLeastOnce(true);
-        }
-      } catch (err) {}
-    }, 3000);
-    return () => clearInterval(pollInterval);
-  }, [step, uniqueId, downloadedAtLeastOnce]);
 
-  const addToHistory = (id: string, type: 'send' | 'receive', title: string) => {
-    const newItem: HistoryItem = { id, type, createdAt: Date.now(), title };
-    const updated = [newItem, ...history].slice(0, 5);
-    setHistory(updated);
-    localStorage.setItem('rafqr_history', JSON.stringify(updated));
-  };
-
-  const handleReceive = async () => {
-      const id = customId.trim() || nanoid(10);
-      setUniqueId(id); setIsUploading(true);
-      try {
-        const res = await fetch('/api/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, textContent: 'WAITING_FOR_UPLOAD' }),
-        });
-        if (!res.ok) throw new Error("ID sudah digunakan");
-        setStep('waiting');
-        addToHistory(id, 'receive', 'Penerimaan Data');
-      } catch (err: any) { setError(err.message); }
-      setIsUploading(false);
-  };
-
-  const handleUpload = async () => {
-    if (selectedFiles.length === 0 && !textContent.trim()) { setError('Unggah file atau masukkan teks.'); return; }
-    if (pinMode && (pinCode.length < 4)) { setError('PIN minimal 4 karakter.'); return; }
-    if (e2eeEnabled && (encryptionKey.length < 8)) { setError('Kunci E2EE minimal 8 karakter.'); return; }
-
-    setIsUploading(true); setOverallProgress(0); setDownloadedAtLeastOnce(false);
-    const uploadedFiles: UploadedFile[] = [];
-    try {
-      for (let i = 0; i < selectedFiles.length; i++) {
-        let finalBlob: Blob = selectedFiles[i];
-        if (e2eeEnabled) finalBlob = await encryptData(selectedFiles[i], encryptionKey);
-        const { downloadURL, storagePath } = await uploadFileToR2(finalBlob, (p) => { setOverallProgress(Math.round(((i + p/100) / (selectedFiles.length || 1)) * 100)); }, selectedFiles[i].name);
-        uploadedFiles.push({ fileName: selectedFiles[i].name, fileSize: finalBlob.size, fileType: selectedFiles[i].type, firebaseUrl: downloadURL, storageRef: storagePath });
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = async () => {
+      if (!document.hidden) {
+        try {
+          const res = await fetch(`/api/session?id=${uniqueId}`);
+          const result = await res.json();
+          if (typeof result.ttl === 'number') setTtl(result.ttl);
+          const hasData = result.data && (result.data.files || (result.data.textContent && result.data.textContent !== 'WAITING_FOR_UPLOAD'));
+          if (step === 'waiting' && res.ok && hasData) {
+            window.location.href = `/d/${uniqueId}`;
+            return;
+          }
+          if (step === 'success' && res.ok && result.data?.isDownloaded) setRecipientOpened(true);
+        } catch { /* transient: the next tick tries again */ }
       }
+      timer = setTimeout(tick, 3000);
+    };
+    tick();
+    const onVisible = () => { if (!document.hidden) { clearTimeout(timer); tick(); } };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible); };
+  }, [step, uniqueId]);
 
-      let finalText = textContent.trim();
-      if (e2eeEnabled && finalText) {
-        const encryptedTextBlob = await encryptData(finalText, encryptionKey);
-        const reader = new FileReader();
-        finalText = await new Promise((resolve) => { reader.onloadend = () => resolve(reader.result as string); reader.readAsDataURL(encryptedTextBlob); });
-      }
+  /* ── receive ID ───────────────────────────────────────────────── */
+  useEffect(() => {
+    if (mode === 'receive' && !useCustomId) setCustomId(nanoid(8).toUpperCase());
+  }, [mode, useCustomId]);
 
-      const senderId = customId.trim() || nanoid(10);
-      const res = await fetch('/api/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: senderId, files: uploadedFiles.length > 0 ? uploadedFiles : undefined, textContent: finalText || undefined, ghost: ghostMode, pin: pinMode ? pinCode : undefined, e2ee: e2eeEnabled }),
-      });
-      if (!res.ok) throw new Error("Gagal membuat sesi.");
-      setUniqueId(senderId); setStep('success');
-      addToHistory(senderId, 'send', selectedFiles[0]?.name || 'Pesan Teks');
-    } catch (err: any) { setError(err.message || 'Error.'); }
-    finally { setIsUploading(false); }
-  };
-
-  const copyLink = async (url: string) => {
+  const copy = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast('Tautan tersalin.', 'success');
       setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      toast('Gagal menyalin tautan.', 'error');
+    } catch {
+      toast('Tidak bisa menyalin. Salin manual dari kotak tautan.', 'error');
     }
   };
 
-  const getShareURL = () => (typeof window !== 'undefined' ? `${window.location.origin}/d/${uniqueId}` : '');
-  const getReceiveURL = () => (typeof window !== 'undefined' ? `${window.location.origin}/u/${uniqueId}` : '');
+  const resetAll = () => {
+    setStep('input');
+    setRows([]);
+    setTextContent('');
+    setError(null);
+    setUniqueId(null);
+    setTtl(null);
+    setRecipientOpened(false);
+    setSendTab('files');
+  };
 
-  return (
-    <PageShell>
-      <SiteHeader onLogoClick={() => setStep('input')} showScan onScan={() => (window.location.href = '/scan')} />
+  /* ── upload ───────────────────────────────────────────────────── */
+  const handleUpload = async () => {
+    setError(null);
+    const hasText = !!textContent.trim();
+    if (rows.length === 0 && !hasText) { setError('Pilih file atau tulis pesan dulu.'); return; }
+    if (pinMode && pinCode.length < 4) { setError('PIN minimal 4 digit.'); return; }
+    if (e2eeEnabled && encryptionKey.length < 8) { setError('Kunci E2EE minimal 8 karakter.'); return; }
 
-      <main className="relative z-10 flex-1 flex flex-col items-center pt-10 sm:pt-16 pb-24 px-5 max-w-5xl mx-auto w-full">
-        {step === 'input' && (
-          <div className="w-full flex justify-center animate-fade-in flex-col items-center">
-            {/* HERO */}
-            <div className="text-center mb-12 flex flex-col items-center max-w-2xl">
-               <span className="neo-tag bg-accent mb-6">Kirim file & teks antar perangkat</span>
-               <h2 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5">
-                  Pindahkan data ke perangkat lain,
-                  <span className="text-muted"> tanpa ribet.</span>
-               </h2>
-               <p className="text-base sm:text-lg text-muted font-medium leading-relaxed">
-                  Buat sesi, tunjukkan QR-nya, selesai. Tanpa akun, tanpa aplikasi —
-                  file otomatis terhapus dalam 30 menit.
-               </p>
-            </div>
+    setStep('uploading');
+    const uploaded: UploadedFile[] = [];
+    const abort = new AbortController();
+    abortRef.current = abort;
 
-            <div className="neo-card neo-card-hover w-full max-w-2xl p-4 sm:p-5 mb-12">
-              {/* MODE SWITCH */}
-              <div className="flex gap-1 p-1 mb-5 border-2 border-ink rounded-md bg-paper">
-                 <button onClick={() => setActiveMode('send')} className={`flex-1 py-2.5 text-sm font-bold rounded transition-all ${activeMode === 'send' ? 'bg-ink text-white' : 'text-muted hover:text-ink'}`}>Kirim</button>
-                 <button onClick={() => setActiveMode('receive')} className={`flex-1 py-2.5 text-sm font-bold rounded transition-all ${activeMode === 'receive' ? 'bg-ink text-white' : 'text-muted hover:text-ink'}`}>Terima</button>
-              </div>
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'uploading' } : r)));
+      try {
+        const blob = e2eeEnabled ? await encryptData(row.file, encryptionKey) : row.file;
+        const { downloadURL, storagePath } = await uploadFileToR2(
+          blob,
+          (p) => setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, progress: p } : r))),
+          row.file.name,
+          abort.signal,
+        );
+        uploaded.push({
+          fileName: row.file.name,
+          fileSize: blob.size,
+          fileType: row.file.type,
+          firebaseUrl: downloadURL,
+          storageRef: storagePath,
+        });
+        setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'done', progress: 100 } : r)));
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') throw err;
+        // One bad file must not sink the whole batch.
+        setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'error', error: (err as Error).message } : r)));
+      }
+    }
 
-              {activeMode === 'send' ? (
-                <div className="px-1 sm:px-2 pb-2 space-y-5">
-                   {/* DROPZONE */}
-                   <div
-                      onClick={() => !isUploading && fileInputRef.current?.click()}
-                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                      onDragLeave={() => setIsDragging(false)}
-                      onDrop={(e) => { e.preventDefault(); setIsDragging(false); if(!isUploading) setSelectedFiles(p => [...p, ...Array.from(e.dataTransfer.files)]); }}
-                      className={`relative overflow-hidden border-2 border-dashed border-ink rounded-lg transition-all cursor-pointer ${isDragging ? 'bg-accent/20' : 'bg-paper hover:bg-accent/10'} ${isUploading ? 'opacity-50 cursor-not-allowed' : ''} p-8 flex flex-col items-center justify-center text-center`}
-                   >
-                      <span className="bg-ink text-accent p-3.5 rounded-lg mb-3">
-                        <CloudUpIcon />
-                      </span>
-                      <h3 className="text-lg font-bold mb-1">Seret file ke sini</h3>
-                      <p className="text-xs font-medium text-muted mb-4">atau klik untuk memilih · maks 50 MB</p>
-                      <span className="neo-btn bg-white text-xs">Pilih file</span>
-                     <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => setSelectedFiles(p => [...p, ...Array.from(e.target.files || [])])} disabled={isUploading} />
-                   </div>
+    setError(null);
+    setTtl(1800);
+    const senderId = customId.trim() || nanoid(10);
+    const res = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: senderId,
+        files: uploaded.length > 0 ? uploaded : undefined,
+        textContent: hasText ? textContent.trim() : undefined,
+        pin: pinMode ? pinCode : undefined,
+        e2ee: e2eeEnabled,
+      }),
+    });
 
-                   {/* FILES PREVIEW */}
-                   {selectedFiles.length > 0 && (
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                        {selectedFiles.map((f, i) => (
-                          <div key={i} className="aspect-square bg-white border-2 border-ink rounded-md shadow-neo-hover flex items-center justify-center relative group overflow-hidden">
-                            {previews[`${f.name}-${f.lastModified}`] ? (
-                              <img src={previews[`${f.name}-${f.lastModified}`]} className="object-cover w-full h-full" />
-                            ) : (
-                              <span className="neo-mono text-[10px] font-bold text-center px-1 truncate">{f.name.split('.').pop()?.toUpperCase()}</span>
-                            )}
-                            <button onClick={(e) => { e.stopPropagation(); setSelectedFiles(p => p.filter((_, idx) => idx !== i)); }} className="absolute inset-0 bg-danger/85 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><XIcon /></button>
-                          </div>
-                        ))}
-                      </div>
-                   )}
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      // Blobs already in storage have no session pointing at them; drop them.
+      // Deliberately no `?id=` — on a 409 that id belongs to someone else.
+      await purgeUploads(uploaded.map((f) => f.storageRef));
+      setError(body.error || 'Gagal membuat sesi.');
+      setStep('input');
+      return;
+    }
 
-                   {/* TEXT AREA */}
-                   <div className="relative">
-                     <textarea disabled={isUploading} value={textContent} onChange={(e) => setTextContent(e.target.value)} placeholder="Tulis pesan (opsional)…" className="neo-input h-28 resize-none" />
-                     <button
-                        onClick={isRecording ? stopRecording : startRecording}
-                        disabled={isUploading}
-                        title={isRecording ? 'Stop rekam' : 'Rekam suara'}
-                        aria-label={isRecording ? 'Stop rekam' : 'Rekam suara'}
-                        className={`absolute bottom-3 right-3 p-2.5 border-2 border-ink rounded-md transition-all shadow-neo-hover active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${isRecording ? 'bg-danger text-white' : 'bg-accent text-ink'}`}
-                     >
-                       {isRecording ? <StopIcon /> : <MicIcon />}
-                     </button>
-                   </div>
+    setUniqueId(senderId);
+    setStep('success');
+    trackTransfer(senderId, uploaded.length > 0 ? uploaded : [{ fileName: 'Pesan teks', fileSize: new Blob([textContent]).size }]);
+  };
 
-                   {/* SETTINGS */}
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Toggle label="Enkripsi E2EE" checked={e2eeEnabled} onChange={() => setE2eeEnabled(!e2eeEnabled)} disabled={isUploading} />
-                      <Toggle label="Auto-hapus" checked={ghostMode} onChange={() => setGhostMode(!ghostMode)} disabled={isUploading} />
-                      <Toggle label="Kunci PIN" checked={pinMode} onChange={() => setPinMode(!pinMode)} disabled={isUploading} />
-                      <div className="flex items-center gap-2 px-3.5 border-2 border-ink rounded-md bg-white shadow-neo-hover">
-                         <span className="neo-mono text-[11px] font-bold text-muted uppercase">ID</span>
-                         <input disabled={isUploading} value={customId} onChange={(e) => setCustomId(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase())} placeholder="otomatis" className="neo-mono bg-transparent w-full py-3 focus:outline-none text-sm font-medium" />
-                      </div>
-                   </div>
+  const cancelUpload = async () => {
+    abortRef.current?.abort();
+    setRows((prev) => prev.filter((r) => r.status !== 'done'));
+    setStep('input');
+  };
 
-                   <div className="space-y-3">
-                     {e2eeEnabled && (
-                       <div className="relative">
-                          <input disabled={isUploading} value={encryptionKey} onChange={(e) => setEncryptionKey(e.target.value)} placeholder="Kunci rahasia (min 8 karakter)" className="neo-input neo-mono bg-accent/5 pr-12 text-sm" />
-                          <button onClick={generateSecureKey} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded hover:bg-ink hover:text-white transition-all" title="Buat kunci acak" aria-label="Buat kunci acak"><DiceIcon /></button>
-                       </div>
-                     )}
-                     {pinMode && (
-                       <div className="relative">
-                          <input disabled={isUploading} type="password" value={pinCode} onChange={(e) => setPinCode(e.target.value.slice(0, 4))} placeholder="PIN 4 digit" className="neo-input neo-mono bg-accent/5 pr-12 tracking-[0.8em] text-center" />
-                          <button onClick={generateSecurePin} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded hover:bg-ink hover:text-white transition-all" title="Buat PIN acak" aria-label="Buat PIN acak"><DiceIcon /></button>
-                       </div>
-                     )}
-                   </div>
+  const startReceiving = async () => {
+    setError(null);
+    const id = customId.trim();
+    if (!id) { setError('ID penerimaan belum dibuat.'); return; }
+    const res = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, textContent: 'WAITING_FOR_UPLOAD' }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error || 'Gagal mengaktifkan penerimaan.');
+      return;
+    }
+    setUniqueId(id);
+    setTtl(1800);
+    setStep('waiting');
+  };
 
-                    <div className="pt-2">
-                      {!isUploading ? (
-                         <button onClick={handleUpload} className="w-full neo-btn bg-ink text-white py-4 text-base hover:bg-accent hover:text-ink">
-                           Buat sesi transfer
-                         </button>
-                      ) : (
-                         <div className="space-y-3 bg-ink text-white p-4 rounded-lg">
-                            <div className="flex justify-between text-xs font-bold neo-mono">
-                              <span>Memproses…</span>
-                              <span>{overallProgress}%</span>
-                            </div>
-                            <div className="h-3 bg-white/15 rounded-full w-full overflow-hidden">
-                              <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${overallProgress}%` }} />
-                            </div>
-                         </div>
-                      )}
-                      {error && <p className="text-center text-xs font-bold text-danger mt-3">{error}</p>}
-                   </div>
-                </div>
-              ) : (
-                <div className="p-2 sm:p-4 text-center space-y-6 flex flex-col items-center">
-                    <h2 className="text-2xl font-extrabold tracking-tight mt-2">Terima langsung ke perangkat ini</h2>
-                    <p className="text-sm font-medium text-muted max-w-sm">Bagikan ID di bawah ke pengirim. Begitu mereka mengirim, file muncul otomatis di sini.</p>
+  const stopReceiving = async () => {
+    if (uniqueId) await fetch(`/api/session?id=${uniqueId}`, { method: 'DELETE' }).catch(() => {});
+    resetAll();
+  };
 
-                    <div className="w-full space-y-5 text-left">
-                      <div className="space-y-2">
-                         <div className="flex justify-between items-center">
-                           <label className="text-xs font-bold text-muted">ID Penerimaan</label>
-                           <button onClick={() => setIsManualId(!isManualId)} className="text-[11px] font-bold text-ink underline decoration-2 decoration-accent hover:decoration-ink transition-colors">
-                             {isManualId ? 'Pakai ID otomatis' : 'Pakai ID sendiri'}
-                           </button>
-                         </div>
-                         <div className="relative">
-                           <input
-                             disabled={!isManualId || isUploading}
-                             value={customId}
-                             onChange={(e) => setCustomId(e.target.value)}
-                             placeholder="contoh: RAF-123"
-                             className={`neo-input neo-mono text-center tracking-[0.15em] uppercase font-bold text-lg w-full ${!isManualId ? 'bg-paper cursor-not-allowed' : 'bg-white'}`}
-                           />
-                           {!isManualId && (
-                             <button onClick={() => setCustomId(nanoid(8).toUpperCase())} className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded hover:bg-ink hover:text-white transition-all" title="Acak ulang" aria-label="Acak ulang ID">
-                               <RefreshIcon />
-                             </button>
-                           )}
-                         </div>
-                      </div>
-                      <button onClick={handleReceive} disabled={isUploading || !customId.trim()} className="w-full neo-btn bg-ink text-white py-4 text-base hover:bg-accent hover:text-ink disabled:opacity-50">
-                        {isUploading ? (
-                          <>
-                            <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full" />
-                            Menyambungkan…
-                          </>
-                        ) : 'Aktifkan penerimaan'}
-                      </button>
+  /* ── render: send ─────────────────────────────────────────────── */
+  const renderSend = () => {
+    const doneCount = rows.filter((r) => r.status === 'done').length;
+    const failed = rows.filter((r) => r.status === 'error');
+    const busy = step === 'uploading';
+
+    return (
+      <>
+        <div className="page narrow stack">
+          <div className="stack" style={{ gap: 7 }}>
+            <h1 className="big">
+              {busy ? <>Mengirim…</> : <>Kirim file ke<br />perangkat lain.</>}
+            </h1>
+            <p className="lead">
+              {busy
+                ? 'Jangan tutup halaman. File sudah aman di perangkatmu, tinggal menunggu naik.'
+                : 'Seret file atau paste apa pun. HP cukup scan QR-nya.'}
+            </p>
+          </div>
+
+          <div className="card pad stack">
+            <Segmented
+              value={mode}
+              onChange={(v) => { setMode(v); setError(null); }}
+              options={[
+                { value: 'send', label: 'Kirim', icon: <CloudUpIcon size={15} /> },
+                { value: 'receive', label: 'Terima', icon: <DownloadIcon size={15} /> },
+              ]}
+            />
+
+            <Tabs
+              value={sendTab}
+              onChange={setSendTab}
+              tabs={[
+                { value: 'files', label: `File · ${rows.length}` },
+                { value: 'text', label: 'Teks' },
+              ]}
+            />
+
+            {sendTab === 'files' ? (
+              <>
+                {rows.length === 0 && !busy ? (
+                  <Dropzone
+                    title="Seret file ke sini"
+                    sub={`atau klik pilih · maks ${formatLimit(MAX_FILE_BYTES)} per file`}
+                    cta="Pilih file"
+                    onFiles={addFiles}
+                  />
+                ) : (
+                  <>
+                    <div className="rows">
+                      {rows.map((r) => (
+                        <FileRow
+                          key={r.key}
+                          name={r.file.name}
+                          dim={r.status === 'queued' && busy}
+                          thumb={
+                            r.file.type.startsWith('image/') ? (
+                              <span className="img"><img src={URL.createObjectURL(r.file)} alt="" /></span>
+                            ) : undefined
+                          }
+                          meta={
+                            r.status === 'error' ? <span style={{ color: 'var(--danger)' }}>{r.error}</span>
+                            : r.status === 'uploading' ? `${formatSize(r.file.size)} · uploading`
+                            : r.status === 'done' ? `${formatSize(r.file.size)} · ${r.file.name.split('.').pop()?.toUpperCase()} · selesai`
+                            : `${formatSize(r.file.size)} · ${r.file.name.split('.').pop()?.toUpperCase()}${busy ? ' · antre' : ''}`
+                          }
+                          actions={
+                            busy && r.status === 'uploading' ? (
+                              <svg width="16" height="16" className="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-label="Mengunggah">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-3-6.7M21 3v6h-6" />
+                              </svg>
+                            ) : busy ? undefined : (
+                              <Btn size="icon" onClick={() => removeRow(r.key)} aria-label={`Hapus ${r.file.name}`}>
+                                <XIcon size={15} />
+                              </Btn>
+                            )
+                          }
+                        />
+                      ))}
                     </div>
-                    {error && <p className="text-center text-xs font-bold text-danger">{error}</p>}
+                    {!busy && (
+                      <Btn variant="white" block onClick={() => fileRef.current?.click()}>Tambah file lain</Btn>
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <div className="stack tight">
+                <div className="relative">
+                  <textarea
+                    className="inp"
+                    style={{ minHeight: 110, paddingRight: 52 }}
+                    value={textContent}
+                    onChange={(e) => setTextContent(e.target.value)}
+                    placeholder="Tulis pesan untuk perangkat tujuan…"
+                    disabled={busy}
+                  />
+                  <Btn
+                    size="icon"
+                    variant={isRecording ? 'solid' : 'white'}
+                    onClick={isRecording ? () => { mediaRef.current?.stop(); setIsRecording(false); } : startRecording}
+                    aria-label={isRecording ? 'Stop rekam' : 'Rekam suara'}
+                    style={{ position: 'absolute', right: 8, bottom: 8 }}
+                  >
+                    {isRecording ? <StopIcon size={15} /> : <MicIcon size={16} />}
+                  </Btn>
                 </div>
-              )}
-            </div>
-
-            {/* HISTORY */}
-            {history.length > 0 && (
-              <div className="w-full max-w-2xl mb-16">
-                 <h4 className="text-xs font-bold text-muted uppercase tracking-widest mb-3">Sesi sebelumnya</h4>
-                 <div className="grid gap-2.5">
-                    {history.map((h, i) => (
-                      <button key={i} className="p-3.5 bg-white border-2 border-ink rounded-md shadow-neo-hover flex justify-between items-center group hover:-translate-y-0.5 hover:shadow-neo transition-all text-left" onClick={() => window.location.href = `/d/${h.id}`}>
-                         <div className="flex items-center gap-3">
-                            <span className={`w-9 h-9 rounded-md border-2 border-ink flex items-center justify-center ${h.type === 'send' ? 'bg-accent text-ink' : 'bg-ink text-white'}`}>
-                              {h.type === 'send' ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
-                            </span>
-                            <span className="text-sm font-bold truncate max-w-[160px] sm:max-w-none">{h.title}</span>
-                         </div>
-                         <span className="neo-mono text-[11px] font-medium text-muted">/{h.id}</span>
-                      </button>
-                    ))}
-                 </div>
+                <p className="hint">
+                  {isRecording ? 'Merekam… tekan sekali lagi untuk berhenti.' : 'Bisa juga rekam catatan suara dan dikirim sebagai file.'}
+                </p>
               </div>
             )}
+
+            {failed.length > 0 && (
+              <div className="alert">
+                <span>
+                  Gagal: {failed.map((f) => f.file.name).join(', ')}. {failed.length === rows.length ? 'Tidak ada file yang terkirim.' : 'File lain tetap terkirim.'}
+                </span>
+              </div>
+            )}
+            {error && <p className="err" role="alert">{error}</p>}
+          </div>
+
+          <Disclosure open={optionsOpen} onToggle={() => setOptionsOpen(!optionsOpen)}>
+            <div className="stack tight" style={{ paddingTop: 8 }}>
+              <Toggle
+                label="Enkripsi E2EE"
+                hint="Kunci tidak pernah dikirim ke server"
+                checked={e2eeEnabled}
+                disabled={busy}
+                onChange={() => setE2eeEnabled(!e2eeEnabled)}
+              />
+              {e2eeEnabled && (
+                <Field label="Kunci rahasia" htmlFor="e2ee-key">
+                  <div className="row" style={{ gap: 8 }}>
+                    <input
+                      id="e2ee-key"
+                      className="inp m"
+                      value={encryptionKey}
+                      onChange={(e) => setEncryptionKey(e.target.value)}
+                      placeholder="minimal 8 karakter"
+                      disabled={busy}
+                    />
+                    <Btn size="icon" onClick={() => setEncryptionKey(nanoid(16))} aria-label="Buat kunci acak">
+                      <RefreshIcon size={16} />
+                    </Btn>
+                  </div>
+                </Field>
+              )}
+              <Toggle
+                label="Kunci PIN"
+                hint="Penerima harus mengetik 4 digit"
+                checked={pinMode}
+                disabled={busy}
+                onChange={() => setPinMode(!pinMode)}
+              />
+              {pinMode && (
+                <Field label="PIN 4 digit" htmlFor="pin">
+                  <div className="row" style={{ gap: 8 }}>
+                    <input
+                      id="pin"
+                      className="inp m"
+                      style={{ letterSpacing: '.4em' }}
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={pinCode}
+                      onChange={(e) => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      disabled={busy}
+                    />
+                    <Btn size="icon" onClick={() => setPinCode(String(Math.floor(1000 + Math.random() * 9000)))} aria-label="Buat PIN acak">
+                      <RefreshIcon size={16} />
+                    </Btn>
+                  </div>
+                </Field>
+              )}
+              <Field label="ID sesi (opsional)" htmlFor="sid">
+                <input
+                  id="sid"
+                  className="inp m"
+                  value={customId}
+                  onChange={(e) => setCustomId(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase())}
+                  placeholder="otomatis — RAF7K2X"
+                  disabled={busy}
+                />
+              </Field>
+            </div>
+          </Disclosure>
+
+          <p className="hint" style={{ textAlign: 'center' }}>
+            Sesi &amp; file terhapus otomatis 30 menit setelah dibuat.
+          </p>
+        </div>
+
+        {busy ? (
+          <div className="dock">
+            <div className="sum"><span>{doneCount} dari {rows.length} file terkirim</span><span>aman</span></div>
+            <Btn variant="white" block onClick={cancelUpload}>Batalkan &amp; bersihkan</Btn>
+          </div>
+        ) : (
+          <div className="dock">
+            <div className="sum">
+              <span>{rows.length > 0 ? `${rows.length} file · ${formatSize(totalSize)}` : (textContent.trim() ? '1 pesan teks' : 'Belum ada file')}</span>
+              <span className="muted">kirim instan</span>
+            </div>
+            <Btn block size="lg" onClick={handleUpload} disabled={rows.length === 0 && !textContent.trim()}>
+              Buat sesi transfer
+            </Btn>
           </div>
         )}
+      </>
+    );
+  };
 
-        {/* SUCCESS / WAITING STATE */}
-        {(step === 'success' || step === 'waiting') && (
-          <div className="w-full max-w-4xl flex flex-col lg:flex-row gap-12 items-center justify-center mt-6 animate-fade-in">
-            <div className="flex-1 space-y-6 text-center lg:text-left">
-               {downloadedAtLeastOnce && <div className="neo-tag bg-ok text-white">Data berhasil disinkronkan</div>}
-               <div className="space-y-3">
-                 <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-none">
-                   {step === 'waiting' ? 'Menunggu kiriman' : 'Sesi aktif'}
-                 </h2>
-                 <p className="text-muted text-base font-medium max-w-sm mx-auto lg:mx-0">
-                   {step === 'waiting' ? 'Jangan tutup halaman ini. File akan muncul otomatis begitu pengirim mengirimnya.' : 'Pindai QR atau bagikan tautan ke perangkat tujuan.'}
-                 </p>
-               </div>
+  /* ── render: receive ──────────────────────────────────────────── */
+  const renderReceive = () => (
+    <>
+      <div className="page narrow stack">
+        <div className="stack" style={{ gap: 7 }}>
+          <h1 className="big">Terima di<br />perangkat ini.</h1>
+          <p className="lead">Aktifkan penerimaan, lalu kirim ID ini ke pengirim. File-nya muncul sendiri.</p>
+        </div>
 
-               <div className="space-y-3 max-w-sm mx-auto lg:mx-0">
-                  <div className="flex items-center bg-white border-2 border-ink rounded-md shadow-neo overflow-hidden">
-                     <div className="flex-1 px-3.5 truncate neo-mono text-sm">
-                       {step === 'waiting' ? getReceiveURL() : getShareURL()}
-                     </div>
-                     <button onClick={() => copyLink(step === 'waiting' ? getReceiveURL() : getShareURL())} className="bg-ink text-white px-5 py-3.5 text-xs font-bold hover:bg-accent hover:text-ink transition-colors border-l-2 border-ink">
-                       {copied ? 'Tersalin' : 'Salin'}
-                     </button>
-                  </div>
-                  <button onClick={async () => {
-                     const url = step === 'waiting' ? getReceiveURL() : getShareURL();
-                     if (navigator.share) await navigator.share({ url }); else copyLink(url);
-                  }} className="w-full neo-btn bg-white py-3.5 text-sm hover:bg-accent">
-                     <ShareIcon /> Bagikan tautan
-                  </button>
-               </div>
+        <div className="card pad stack">
+          <Segmented
+            value={mode}
+            onChange={(v) => { setMode(v); setError(null); }}
+            options={[
+              { value: 'send', label: 'Kirim', icon: <CloudUpIcon size={15} /> },
+              { value: 'receive', label: 'Terima', icon: <DownloadIcon size={15} /> },
+            ]}
+          />
 
-               {e2eeEnabled && step === 'success' && (
-                  <div className="p-5 border-2 border-ink rounded-lg bg-accent shadow-neo text-left max-w-sm mx-auto lg:mx-0">
-                    <div className="neo-tag bg-ink text-white mb-2">Kunci pembuka</div>
-                    <p className="neo-mono text-lg font-bold break-all">{encryptionKey}</p>
-                    <p className="text-[11px] font-medium text-ink/70 mt-2">Kirim kunci ini ke penerima. Jika hilang, file tidak bisa dibuka.</p>
-                  </div>
-               )}
-
-               <button onClick={() => setStep('input')} className="text-xs font-bold text-muted hover:text-ink underline decoration-2 decoration-accent transition-colors">Mulai sesi baru</button>
-            </div>
-
-            <BrandedQR
-              value={step === 'waiting' ? getReceiveURL() : getShareURL()}
-              size={qrSize}
-              caption={step === 'waiting' ? 'Pindai untuk mengirim' : 'Pindai untuk membuka'}
-              rotate="rotate-1"
-            />
-          </div>
-        )}
-      </main>
-
-      {/* LANDING SECTIONS */}
-      {step === 'input' && (
-        <section className="w-full mb-20 px-5 flex flex-col items-center">
-          <div className="max-w-4xl mx-auto w-full space-y-16">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="neo-card neo-card-hover p-6">
-                <span className="w-11 h-11 rounded-md bg-ink text-accent flex items-center justify-center mb-4"><BoltIcon /></span>
-                <h3 className="text-lg font-bold mb-2">Lintas perangkat</h3>
-                <p className="text-sm font-medium text-muted leading-relaxed">Laptop ke HP, Android ke PC — cukup lewat browser, tanpa instal apa pun.</p>
-              </div>
-              <div className="neo-card neo-card-hover p-6">
-                <span className="w-11 h-11 rounded-md bg-ink text-accent flex items-center justify-center mb-4"><ShieldIcon /></span>
-                <h3 className="text-lg font-bold mb-2">Enkripsi lokal</h3>
-                <p className="text-sm font-medium text-muted leading-relaxed">Aktifkan E2EE untuk mengenkripsi di browser. Kunci tidak pernah dikirim ke server.</p>
-              </div>
-              <div className="neo-card neo-card-hover p-6">
-                <span className="w-11 h-11 rounded-md bg-ink text-accent flex items-center justify-center mb-4"><TrashIcon /></span>
-                <h3 className="text-lg font-bold mb-2">Tanpa sisa</h3>
-                <p className="text-sm font-medium text-muted leading-relaxed">Data terhapus otomatis dari server dalam 30 menit. Tidak ada jejak yang tertinggal.</p>
-              </div>
-            </div>
-
-            <div className="neo-card p-8 md:p-10">
-               <h2 className="text-2xl font-extrabold tracking-tight mb-8 text-center">Tiga langkah</h2>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {[
-                    { n: '1', t: 'Taruh file', d: 'Pilih file atau tulis pesan. Tambahkan PIN atau kunci E2EE bila perlu.' },
-                    { n: '2', t: 'Bagikan QR', d: 'QR dan tautan langsung terbentuk. Tunjukkan di layar atau salin.' },
-                    { n: '3', t: 'Terima', d: 'Perangkat tujuan pindai atau buka tautan, lalu unduh.' },
-                  ].map((s) => (
-                    <div key={s.n}>
-                      <span className="neo-mono w-10 h-10 bg-accent flex items-center justify-center border-2 border-ink rounded-md mb-4 text-lg font-bold">{s.n}</span>
-                      <h4 className="font-bold mb-1.5">{s.t}</h4>
-                      <p className="text-sm font-medium text-muted leading-relaxed">{s.d}</p>
-                    </div>
-                  ))}
-               </div>
+          <div className="card flat" style={{ background: 'var(--soft)', display: 'grid', justifyItems: 'center', gap: 10, padding: 22 }}>
+            <span className="tiny muted" style={{ fontWeight: 600 }}>ID PENERIMAAN</span>
+            <span className="mono num" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '.16em' }}>{customId}</span>
+            <div className="row" style={{ gap: 8 }}>
+              <Copied show={copied} />
+              {!copied && (
+                <Btn size="sm" onClick={() => copy(receiveUrl || customId)}>
+                  <CopyIcon size={14} /> Salin
+                </Btn>
+              )}
+              <Btn size="sm" variant="white" onClick={() => setCustomId(nanoid(8).toUpperCase())}>
+                <RefreshIcon size={14} /> ID baru
+              </Btn>
             </div>
           </div>
-        </section>
-      )}
 
-      <SiteFooter />
-    </PageShell>
+          <p className="hint">Atau pakai ID sendiri supaya penerima bisa mengetik, bukan scan.</p>
+          <div className="row" style={{ gap: 10 }}>
+            <Btn
+              size="sm"
+              variant="white"
+              onClick={() => setUseCustomId(!useCustomId)}
+            >
+              {useCustomId ? 'Pakai ID otomatis' : 'Pakai ID sendiri'}
+            </Btn>
+            {useCustomId && (
+              <input
+                className="inp m"
+                value={customId}
+                onChange={(e) => setCustomId(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase())}
+                placeholder="mis. RAF-123"
+                aria-label="ID kustom"
+              />
+            )}
+          </div>
+          {error && <p className="err" role="alert">{error}</p>}
+        </div>
+
+        <div className="info"><BoltIcon size={15} /> Halaman ini boleh ditutup — incoming tetap masuk, cukup buka lagi.</div>
+      </div>
+      <div className="dock">
+        <Btn block size="lg" onClick={startReceiving}>Aktifkan penerimaan</Btn>
+      </div>
+    </>
+  );
+
+  /* ── render: session active / waiting ─────────────────────────── */
+  const renderActive = () => {
+    const waiting = step === 'waiting';
+    return (
+      <>
+        <div className="page">
+          <div className="split">
+            <div className="colL stack">
+              <div className="stack" style={{ gap: 7 }}>
+                {!waiting && recipientOpened && (
+                  <span className="badge g"><CheckIcon size={13} /> Sudah dibuka di perangkat lain</span>
+                )}
+                {waiting && (
+                  <span className="badge y">
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'block' }} />
+                    Menunggu pengirim
+                  </span>
+                )}
+                <h1 className="big">{waiting ? <>Siap menerima.</> : <>Sesi aktif.</>}</h1>
+                <p className="lead">
+                  {waiting
+                    ? 'Begitu pengirim kirim, halaman ini otomatis membuka filenya.'
+                    : 'Kirim tautan ini ke penerima, atau biarkan dia scan QR di layar.'}
+                </p>
+              </div>
+
+              <div className="stack tight">
+                <div className="linkrow">
+                  <span className="u">{activeUrl.replace(/^https?:\/\//, '')}</span>
+                  <Copied show={copied} />
+                  {!copied && (
+                    <Btn size="sm" onClick={() => copy(activeUrl)}>
+                      <CopyIcon size={14} /> Salin
+                    </Btn>
+                  )}
+                </div>
+                <div className="row" style={{ gap: 8 }}>
+                  <Btn
+                    variant="white"
+                    size="sm"
+                    style={{ flex: 1 }}
+                    onClick={async () => {
+                      if (navigator.share) await navigator.share({ url: activeUrl }).catch(() => {});
+                      else copy(activeUrl);
+                    }}
+                  >
+                    <ShareIcon size={15} /> Bagikan
+                  </Btn>
+                </div>
+              </div>
+
+              {e2eeEnabled && !waiting && encryptionKey && (
+                <div className="note">
+                  <ShieldIcon size={16} />
+                  <span>Terenkripsi di browser. Kunci <b className="mono">{encryptionKey}</b> harus kamu kirim terpisah.</span>
+                </div>
+              )}
+
+              {waiting && (
+                <div className="rows">
+                  <div className="lrow">
+                    <span className="tile y"><DownloadIcon size={17} /></span>
+                    <span className="lrow-txt">
+                      <span className="t">Menunggu file masuk</span>
+                      <span className="s">cek tiap 3 detik · jeda saat tab tidak terlihat</span>
+                    </span>
+                  </div>
+                  <div className="lrow">
+                    <span className="tile y"><ShieldIcon size={17} /></span>
+                    <span className="lrow-txt">
+                      <span className="t">Sesi terenkripsi</span>
+                      <span className="s">PIN / E2EE diminta pengirim lewat kunci terpisah</span>
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <p className="hint">
+                Sesi <span className="mono">{uniqueId}</span> · {rows.length > 0 && `${rows.length} file · ${formatSize(totalSize)} · `}
+                hangus otomatis dalam <span className="mono num">{secondsLeft === null ? '—' : `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`}</span>
+              </p>
+            </div>
+
+            <QrBox value={activeUrl} size={212} caption={waiting ? 'Pindai untuk mengirim' : 'Pindai untuk membuka'} />
+          </div>
+        </div>
+
+        <div className="dock">
+          {waiting ? (
+            <Btn variant="white" block onClick={stopReceiving}>Berhenti menerima</Btn>
+          ) : (
+            <Btn variant="white" block onClick={resetAll}>Selesai — kirim lagi</Btn>
+          )}
+        </div>
+      </>
+    );
+  };
+
+  return (
+    <AppShell>
+      <TopBar
+        onLogoClick={resetAll}
+        right={
+          step === 'input' && mode === 'send'
+            ? <Btn variant="white" size="sm" onClick={() => { window.location.href = '/scan'; }}><ScanIcon size={16} /> Pindai</Btn>
+            : <Countdown seconds={secondsLeft} />
+        }
+      />
+      {step === 'success' || step === 'waiting'
+        ? renderActive()
+        : mode === 'receive'
+          ? renderReceive()
+          : renderSend()}
+
+      {step === 'input' && mode === 'send' && <HowItWorks />}
+
+      {step === 'input' && <SiteFooter />}
+    </AppShell>
+  );
+}
+
+/** Layar 07 — three steps, one line each. No feature grid. */
+function HowItWorks() {
+  const steps = [
+    { t: 'Pilih file di PC', d: 'Seret ke jendela, atau paste Ctrl+V.' },
+    { t: 'Tunjukkan QR / kirim tautan', d: 'QR otomatis, bisa disimpan sebagai gambar.' },
+    { t: 'HP buka & unduh', d: 'Kalau banyak file, unduh semua lewat satu ZIP.' },
+  ];
+  return (
+    <div className="page narrow stack" style={{ paddingTop: 0 }}>
+      <div className="card pad stack" style={{ gap: 14 }}>
+        <h2 className="mid">Cara kerja</h2>
+        <div className="stack tight">
+          {steps.map((s, i) => (
+            <div key={s.t} className="row" style={{ alignItems: 'flex-start', gap: 12 }}>
+              <span className="tile y" style={{ borderRadius: 8, fontWeight: 700, fontSize: 13, width: 38, height: 38 }}>{i + 1}</span>
+              <span>
+                <span style={{ fontWeight: 600 }}>{s.t}</span>
+                <span className="muted" style={{ display: 'block', fontSize: 13 }}>{s.d}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="rows">
+        <div className="lrow">
+          <span className="tile y"><ClockIcon size={17} /></span>
+          <span className="lrow-txt">
+            <span className="t">Auto-hapus 30 menit</span>
+            <span className="s">Tidak ada data yang menetap di server.</span>
+          </span>
+        </div>
+        <div className="lrow">
+          <span className="tile y"><ShieldIcon size={17} /></span>
+          <span className="lrow-txt">
+            <span className="t">Tanpa akun</span>
+            <span className="s">Tidak perlu email, tidak ada profil.</span>
+          </span>
+        </div>
+        <div className="lrow">
+          <span className="tile y"><BoltIcon size={17} /></span>
+          <span className="lrow-txt">
+            <span className="t">Transfer langsung ke storage</span>
+            <span className="s">File tidak lewat server aplikasi.</span>
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }

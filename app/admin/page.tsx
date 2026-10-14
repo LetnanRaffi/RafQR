@@ -2,134 +2,133 @@
 
 import { useState } from 'react';
 import { Logo } from '../../components/Logo';
-import { toast } from '../../components/toast';
+import { AppShell, TopBar, Btn } from '../../components/ui';
 
 interface AnalyticsData {
   totalTransfers: number;
   totalGb: string;
-  largestFile: {
-    file_name: string;
-    file_size: number;
-  };
+  largestFile: { file_name: string; file_size: number } | null;
   chartData: Array<{ date: string; count: number }>;
   totalVisitors: number;
 }
 
 const formatBytes = (bytes: number) => {
-  if (bytes === 0) return '0 B';
+  if (!bytes) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
+
+const DAY = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 export default function AdminDashboard() {
   const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [pin, setPin] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [key, setKey] = useState('');
+  const [authed, setAuthed] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const load = async (adminKey: string) => {
+    const res = await fetch('/api/analytics', { headers: { 'x-admin-key': adminKey } });
+    if (!res.ok) throw new Error('Key salah.');
+    return res.json();
+  };
+
+  const login = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError(null);
     try {
-      const res = await fetch('/api/analytics', { headers: { 'x-admin-key': pin } });
-      if (!res.ok) {
-        toast('Akses ditolak.', 'error');
-        return;
-      }
-      setData(await res.json());
-      setLoading(false);
-      setIsAuthenticated(true);
-    } catch {
-      toast('Gagal terhubung.', 'error');
+      setData(await load(key));
+      setAuthed(true);
+    } catch (err) {
+      setLoginError((err as Error).message || 'Gagal terhubung.');
     }
   };
 
-  if (!isAuthenticated) {
+  const sync = async () => {
+    setSyncing(true);
+    try { setData(await load(key)); } finally { setSyncing(false); }
+  };
+
+  if (!authed) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
-        <form onSubmit={handleLogin} className="max-w-xs w-full space-y-6">
-          <div className="flex justify-center mb-8"><Logo size={48} /></div>
-          <h1 className="text-xl font-black uppercase text-center tracking-widest italic opacity-40 mb-10">Secret Dashboard</h1>
-          <input 
-            type="password" 
-            value={pin} 
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="Enter Admin Key" 
-            className="w-full bg-white/5 border border-white/10 p-4 font-black text-center focus:outline-none focus:border-white transition-all"
-            autoFocus
+      <AppShell dim={false} className="dk center">
+        <form onSubmit={login} className="stack" style={{ width: '100%', maxWidth: 300 }}>
+          <span style={{ display: 'grid', placeItems: 'center', margin: '0 auto', background: '#0B0B0C', borderRadius: 14, padding: 9 }}>
+            <Logo size={26} />
+          </span>
+          <h1 className="big" style={{ fontSize: 19, textAlign: 'center' }}>Admin dashboard</h1>
+          <p className="lead" style={{ textAlign: 'center', fontSize: 13 }}>Masukkan admin key lokal.</p>
+          <input
+            className="inp m"
+            type="password"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            placeholder="••••••••"
+            autoComplete="current-password"
+            aria-label="Admin key"
+            style={{ textAlign: 'center', letterSpacing: '.3em' }}
           />
-          <button type="submit" className="w-full bg-white text-black font-black uppercase py-4 tracking-widest hover:bg-white/90">Verify Identity</button>
+          {loginError && <p className="err" role="alert">{loginError}</p>}
+          <Btn type="submit" block>Masuk</Btn>
         </form>
-      </div>
+      </AppShell>
     );
   }
 
-  if (loading) return <div className="min-h-screen bg-black text-white p-10 font-black flex items-center justify-center animate-pulse">BOOTING ACCESS...</div>;
-
-  const maxCount = Math.max(...(data?.chartData.map(d => d.count) || [1])) || 1;
+  const maxCount = Math.max(1, ...(data?.chartData.map((d) => d.count) ?? [1]));
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans p-6 sm:p-12 lg:p-20">
-      <header className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-20">
-        <div className="flex items-center gap-6">
-          <Logo size={40} />
-          <div>
-            <h1 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Admin <br /><span className="opacity-20">Analytics</span></h1>
-          </div>
-        </div>
-        <div className="text-[9px] font-black uppercase tracking-[0.3em] opacity-30 border border-white/10 px-4 py-2">System Live Status: OK</div>
-      </header>
+    <AppShell className="dk">
+      <TopBar
+        title="Admin"
+        right={<span className="sysbadge">system ok</span>}
+      />
 
-      <main className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-20 animate-fade-in">
-          <div className="p-10 border border-white/5 bg-white/[0.02]">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-30 mb-2">Total Transferred</p>
-            <p className="text-4xl font-black italic">{data?.totalGb} <span className="text-sm opacity-20 unitalic">GB</span></p>
+      <div className="page">
+        <div className="kgrid">
+          <div className="card kv">
+            <span className="k">TERKIRIM</span>
+            <span className="v num">{data?.totalGb} <small>GB</small></span>
           </div>
-          <div className="p-10 border border-white/5 bg-white/[0.02]">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-30 mb-2">Success Scans</p>
-            <p className="text-4xl font-black italic">{data?.totalTransfers}</p>
+          <div className="card kv">
+            <span className="k">SESI SELESAI</span>
+            <span className="v num">{data?.totalTransfers}</span>
           </div>
-          <div className="p-10 border border-white/5 bg-white/[0.02]">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-30 mb-2">Total Visitors</p>
-            <p className="text-4xl font-black italic">{data?.totalVisitors}</p>
+          <div className="card kv">
+            <span className="k">PENGUNJUNG</span>
+            <span className="v num">{data?.totalVisitors}</span>
           </div>
-          <div className="p-10 border border-white/5 bg-white/[0.02] flex flex-col justify-center">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-30 mb-2">Largest Asset</p>
-            <p className="text-xs font-black uppercase tracking-tighter truncate w-full mb-1">{data?.largestFile.file_name}</p>
-            <p className="text-lg font-black italic opacity-40">{formatBytes(data?.largestFile.file_size || 0)}</p>
+          <div className="card kv">
+            <span className="k">FILE TERBESAR</span>
+            <span className="v" style={{ fontSize: 15, wordBreak: 'break-all' }}>
+              {data?.largestFile?.file_name ?? '—'}
+              <small> {formatBytes(data?.largestFile?.file_size || 0)}</small>
+            </span>
           </div>
         </div>
 
-        <section className="animate-fade-in-up">
-           <h3 className="text-[10px] font-black uppercase tracking-[0.4em] opacity-30 mb-12 border-b border-white/5 pb-4">Activity Journal (Weekly)</h3>
-           <div className="flex items-end gap-1 sm:gap-4 h-64 sm:h-96">
-             {data?.chartData.map((d, i) => (
-               <div key={i} className="flex-1 flex flex-col items-center group">
-                 <div className="text-[10px] font-black opacity-0 group-hover:opacity-40 transition-opacity mb-2">{d.count}</div>
-                 <div 
-                   className="w-full bg-white/10 group-hover:bg-white transition-all duration-500 ease-out" 
-                   style={{ height: `${(d.count / maxCount) * 100}%`, minHeight: '2px' }} 
-                 />
-                 <div className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest mt-4 opacity-20 -rotate-45 sm:rotate-0 origin-left">
-                    {d.date.split('-').slice(1).join('/')}
-                 </div>
-               </div>
-             ))}
-           </div>
-        </section>
-        
-        <div className="mt-32 p-8 border border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6">
-           <p className="text-[10px] font-black uppercase tracking-widest opacity-20 leading-relaxed max-w-sm text-center sm:text-left italic">Pemberitahuan: Data ini diambil langsung dari tabel analitik Supabase secara real-time untuk kebutuhan evaluasi project.</p>
-           <button onClick={() => window.location.reload()} className="px-10 py-4 ring-1 ring-white/10 text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">Manual Sync</button>
+        <div className="sechead">
+          <h4 className="sech" style={{ color: '#8B94A3' }}>Aktivitas 7 hari</h4>
+          <Btn size="sm" variant="white" onClick={sync} disabled={syncing}>{syncing ? 'Sync…' : 'Sync'}</Btn>
         </div>
-      </main>
+        <div className="chart">
+          {data?.chartData.map((d) => {
+            const day = DAY[new Date(d.date).getDay()] ?? d.date;
+            return (
+              <div className="c" key={d.date} title={`${day}: ${d.count}`}>
+                <b style={{ height: `${Math.max(2, (d.count / maxCount) * 100)}%` }} />
+                <s>{day}</s>
+              </div>
+            );
+          })}
+        </div>
 
-      <footer className="mt-20 max-w-7xl mx-auto py-10 border-t border-white/5 flex justify-between items-center opacity-10">
-        <p className="text-[9px] font-black uppercase tracking-widest leading-none">Internal Use Only / RaffiTech Solutions Dashboard / v1.0 Alpha</p>
-        <Logo size={16} />
-      </footer>
-    </div>
+        <div className="card pad" style={{ fontSize: 12.5, color: '#8B94A3', lineHeight: 1.6 }}>
+          Angka diambil langsung dari Supabase. Metrik dasar untuk melihat pemakaian — tanpa pelacak pihak ketiga, tanpa profil pengguna.
+        </div>
+      </div>
+    </AppShell>
   );
 }

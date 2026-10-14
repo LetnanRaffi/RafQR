@@ -1,39 +1,20 @@
 'use client';
 
-/**
- * Clean Monochrome Logo Component
- */
-export const Logo = ({ 
-  size = 32, 
-  smSize = 40,
-  className = "",
-  color = "black"
-}: { 
-  size?: number, 
-  smSize?: number,
-  className?: string,
-  color?: "black" | "white"
-}) => {
-  return (
-    <div 
-      className={`relative flex items-center justify-center shrink-0 ${className}`} 
-      style={{ width: size, height: size }}
-    >
-      {/* Use CSS variables or just keep it simple with size prop */}
-      <svg 
-        width="100%"
-        height="100%"
-        viewBox="0 0 32 32" 
-        fill="none" 
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path d="M0 0H32V32H0V0Z" fill={color === "white" ? "black" : "white"}/>
-        <path d="M4 4H12V12H4V4ZM4 20H12V28H4V20ZM20 4H28V12H20V4Z" fill={color === "white" ? "white" : "black"}/>
-        <path d="M20 20H24V24H20V20ZM24 24H28V28H24V24ZM20 25H22V28H20V25ZM25 20H28V22H25V20Z" fill={color === "white" ? "white" : "black"}/>
-        <rect x="6" y="6" width="4" height="4" fill={color === "white" ? "black" : "white"} opacity="0.2"/>
-        <rect x="22" y="6" width="4" height="4" fill={color === "white" ? "black" : "white"} opacity="0.2"/>
-        <rect x="6" y="22" width="4" height="4" fill={color === "white" ? "black" : "white"} opacity="0.2"/>
-      </svg>
-    </div>
-  );
-};
+/** RafQR mark: ink tile, accent glyph. Matches `.brand .mark` in the design tokens. */
+export const Logo = ({ size = 28, className = '' }: { size?: number; className?: string }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 32 32"
+    fill="none"
+    aria-hidden="true"
+    className={className}
+  >
+    <path d="M0 0H32V32H0V0Z" fill="#111113" />
+    <path d="M7 7H14V14H7V7ZM7 18H14V25H7V18ZM18 7H25V14H18V7Z" fill="#FACC15" />
+    <path
+      d="M18 18H21.5V21.5H18V18ZM21.5 21.5H25V25H21.5V21.5ZM18 22.5H20.5V25H18V22.5ZM23.5 18H25V20.5H23.5V18Z"
+      fill="#FACC15"
+    />
+  </svg>
+);

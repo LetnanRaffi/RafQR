@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Instant & Ephemeral Data Bridge for your files and notes',
     start_url: '/',
     display: 'standalone',
-    background_color: '#000000',
-    theme_color: '#000000',
+    background_color: '#FBFBF9',
+    theme_color: '#FBFBF9',
     icons: [
       {
         src: '/logo.svg',

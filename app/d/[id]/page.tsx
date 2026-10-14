@@ -1,25 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Logo } from '../../../components/Logo';
 import { decryptData } from '../../../lib/crypto';
 import { toast } from '../../../components/toast';
 import { formatSize } from '../../../lib/format';
-import { PageShell, SiteHeader } from '../../../components/ui';
+import { MAX_ZIP_BYTES, formatLimit } from '../../../lib/limits';
 import {
-  getFileIcon, DownloadIcon, ShareIcon, WarningIcon, CheckShieldIcon,
+  AppShell, TopBar, Btn, FileRow, Field, PinBoxes, Countdown, useCountdown, Copied, Disclosure,
+} from '../../../components/ui';
+import {
+  DownloadIcon, ShareIcon, LockIcon, ShieldIcon, CheckIcon, EyeIcon, EditIcon, CopyIcon,
+  PrevIcon, NextIcon, XIcon, BackIcon, ClockIcon, CopyIcon as CopyGlyph,
 } from '../../../components/icons';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
-interface SessionFile {
-  fileName: string;
-  fileSize: number;
-  fileType: string;
-  firebaseUrl: string;
-}
-
+interface SessionFile { fileName: string; fileSize: number; fileType: string; firebaseUrl: string; storageRef?: string; }
 interface FileSession {
   files?: SessionFile[];
   textContent?: string;
@@ -27,36 +24,42 @@ interface FileSession {
   totalSize: number;
   fileCount: number;
   pin?: string;
-  ghost?: boolean;
-  e2ee?: boolean; // v3.5 flag
+  e2ee?: boolean;
 }
 
-const LockIcon = () => (<svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>);
-
-export default function DownloadPage() {
+export default function ReceivePage() {
   const { id } = useParams();
   const [session, setSession] = useState<FileSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
-  const [enteredPin, setEnteredPin] = useState('');
+  const [ttl, setTtl] = useState<number | null>(null);
+  const secondsLeft = useCountdown(ttl);
 
-  // v3.5 E2EE
+  const [isLocked, setIsLocked] = useState(false);
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
+
   const [isEncrypted, setIsEncrypted] = useState(false);
   const [secretKey, setSecretKey] = useState('');
   const [isDecrypted, setIsDecrypted] = useState(false);
+  const [decryptError, setDecryptError] = useState<string | null>(null);
 
-  // v3.6 Preview
-  const [previews, setPreviews] = useState<Record<string, { url: string, type: string }>>({});
-  const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
+  const [blobs, setBlobs] = useState<Record<string, string>>({});
+  const [blobUrls, setBlobUrls] = useState<Record<string, string>>({});
+  const [lightbox, setLightbox] = useState<number | null>(null);
+
   const [decryptedText, setDecryptedText] = useState<string | null>(null);
-  const [decryptedFiles, setDecryptedFiles] = useState<Record<string, Blob>>({});
+  const [draft, setDraft] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const [isNotified, setIsNotified] = useState(false);
   const [isZipping, setIsZipping] = useState(false);
-  const [currentFileDownload, setCurrentFileDownload] = useState<string | null>(null);
+  const [busyFile, setBusyFile] = useState<string | null>(null);
 
+  const textKey = `rafqr_text_${id}`;
+
+  /* ── load ─────────────────────────────────────────────────────── */
   useEffect(() => {
     fetch(`/api/session?id=${id}`)
       .then((res) => {
@@ -65,344 +68,369 @@ export default function DownloadPage() {
       })
       .then((result) => {
         setSession(result.data);
+        setTtl(typeof result.ttl === 'number' ? result.ttl : null);
         if (result.data.locked) setIsLocked(true);
         if (result.data.e2ee) setIsEncrypted(true);
         setLoading(false);
-        if (!result.data.locked && !result.data.e2ee) notifyPC();
+        if (!result.data.locked && !result.data.e2ee) notify();
       })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+      .catch((err) => { setError(err.message); setLoading(false); });
   }, [id]);
 
+  // Restore a locally edited message (PRD §6.7 — never sent back to server).
   useEffect(() => {
-    if (session?.files && !isLocked && (!isEncrypted || isDecrypted)) {
-       session.files.forEach(file => {
-          const ext = file.fileName.split('.').pop()?.toLowerCase() || '';
-          if (['png','jpg','jpeg','gif','webp','svg'].includes(ext) && !previews[file.fileName]) {
-             previewFile(file.firebaseUrl, file.fileName);
-          }
-       });
-    }
+    const saved = localStorage.getItem(textKey);
+    if (saved) { setDraft(saved); setDecryptedText(saved); }
+  }, [textKey]);
+
+  // Object URLs must be released or a long session leaks memory.
+  useEffect(() => () => { Object.values(blobUrls).forEach((u) => URL.revokeObjectURL(u)); }, [blobUrls]);
+
+  const notify = useCallback(async () => {
+    try { await fetch(`/api/session?id=${id}`, { method: 'PATCH' }); } catch { /* advisory only */ }
+  }, [id]);
+
+  const keyOf = (f: SessionFile) => f.storageRef || f.fileName;
+
+  /**
+   * Single choke point for every byte out of storage. Guards the HTTP status —
+   * a purged/expired presigned URL otherwise yields a 404 XML body that
+   * saveAs() would happily write to disk under the real filename.
+   */
+  const fetchBlob = async (url: string): Promise<Blob> => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Berkas sudah kedaluwarsa atau dibatalkan.');
+    const blob = await res.blob();
+    if (session?.e2ee) return (await decryptData(blob, secretKey)) as Blob;
+    return blob;
+  };
+
+  // Previews resolve on their own — the format is recognised, no button (PRD §6.7).
+  useEffect(() => {
+    if (!session?.files || isLocked || isEncrypted !== isDecrypted) return;
+    session.files.forEach((f) => {
+      const key = keyOf(f);
+      if (blobs[key] || blobUrls[key]) return;
+      fetchBlob(f.firebaseUrl)
+        .then((blob) => setBlobs((prev) => ({ ...prev, [key]: URL.createObjectURL(blob) })))
+        .catch(() => { /* a broken preview must not break the list */ });
+    });
   }, [session, isLocked, isEncrypted, isDecrypted]);
 
-  const notifyPC = async () => {
-    if (isNotified) return;
-    try {
-      await fetch(`/api/session?id=${id}`, { method: 'PATCH' });
-      setIsNotified(true);
-    } catch (e) {}
+  /* ── actions ──────────────────────────────────────────────────── */
+  const unlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError(null);
+    const res = await fetch('/api/session/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, pin }),
+    });
+    if (!res.ok) { setPinError('PIN salah, coba lagi.'); setPin(''); return; }
+    const result = await res.json();
+    setSession((prev) => ({ ...(prev as FileSession), ...result.data }));
+    setIsLocked(false);
+    if (result.data.e2ee) setIsEncrypted(true);
+    else notify();
   };
 
-  const handleUnlock = async (e: React.FormEvent) => {
+  const decrypt = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const res = await fetch('/api/session/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, pin: enteredPin }),
-      });
-      if (!res.ok) {
-        toast('PIN salah, coba lagi.', 'error');
-        return;
-      }
-      const result = await res.json();
-      // Merge the now-unlocked payload (files/text) into session.
-      setSession((prev) => ({ ...(prev as FileSession), ...result.data }));
-      setIsLocked(false);
-      if (result.data.e2ee) setIsEncrypted(true);
-      else notifyPC();
-    } catch {
-      toast('Gagal memverifikasi PIN.', 'error');
-    }
-  };
-
-  const handleDecrypt = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (secretKey.length < 8) {
-      toast('Kunci minimal 8 karakter.', 'error');
-      return;
-    }
+    setDecryptError(null);
     setLoading(true);
     try {
-      // Decrypt Text
       if (session?.textContent) {
-        // Encypted text was a Data URL (Blob base64)
-        const textRes = await fetch(session.textContent);
-        const textBlob = await textRes.blob();
-        const dec = await decryptData(textBlob, secretKey);
-        // dec is a blob
-        const reader = new FileReader();
-        const dText = await new Promise<string>((resolve) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsText(dec as Blob);
-        });
-        setDecryptedText(dText);
+        const dec = await (await fetch(session.textContent)).blob();
+        const plain = (await decryptData(dec, secretKey)) as Blob;
+        setDecryptedText(await plain.text());
       }
       setIsDecrypted(true);
-      notifyPC();
-      toast('Dekripsi berhasil.', 'success');
-    } catch (err: any) {
-      toast(err.message || 'Gagal mendekripsi. Kunci salah?', 'error');
+      notify();
+    } catch {
+      setDecryptError('Kunci tidak cocok dengan file ini.');
     } finally {
       setLoading(false);
     }
   };
 
-  const downloadFile = async (url: string, name: string, shareMode: boolean = false) => {
-    setCurrentFileDownload(name);
+  const download = async (f: SessionFile, shareMode = false) => {
+    setBusyFile(f.fileName);
     try {
-       const res = await fetch(url);
-       let blob = await res.blob();
-
-       if (session?.e2ee) {
-          const dec = await decryptData(blob, secretKey);
-          blob = dec as Blob;
-       }
-
-       if (shareMode && navigator.canShare) {
-          const file = new File([blob], name, { type: blob.type || 'application/octet-stream' });
-          if (navigator.canShare({ files: [file] })) {
-             await navigator.share({
-               files: [file],
-               title: name,
-               text: 'File dari RafQR'
-             });
-             return;
-          }
-       }
-       saveAs(blob, name);
-       toast(`"${name}" berhasil diunduh.`, 'success');
-    } catch (err) {
-       toast('Gagal memproses file. Pastikan kunci benar atau berbagi tidak dibatalkan.', 'error');
-    } finally {
-       setCurrentFileDownload(null);
-    }
-  };
-
-  const previewFile = async (url: string, name: string) => {
-    setLoadingPreview(name);
-    try {
-       const res = await fetch(url);
-       let blob = await res.blob();
-       if (session?.e2ee) {
-          const dec = await decryptData(blob, secretKey);
-          blob = dec as Blob;
-       }
-       const blobUrl = URL.createObjectURL(blob);
-
-       const ex = name.split('.').pop()?.toLowerCase();
-       let type = 'unknown';
-       if (['png','jpg','jpeg','gif','webp','svg'].includes(ex || '')) type = 'image';
-       else if (['mp4','webm','mov'].includes(ex || '')) type = 'video';
-       else if (['mp3','wav','ogg'].includes(ex || '')) type = 'audio';
-
-       setPreviews(p => ({ ...p, [name]: { url: blobUrl, type } }));
-    } catch (err) {
-       toast('Gagal memuat pratinjau.', 'error');
-    } finally {
-       setLoadingPreview(null);
-    }
-  };
-
-  const downloadAllAsZip = async () => {
-    if (!session?.files || session.files.length === 0) return;
-    setIsZipping(true);
-    const zip = new JSZip();
-    try {
-      for (const f of session.files) {
-        const res = await fetch(f.firebaseUrl);
-        let blob = await res.blob();
-        if (session.e2ee) {
-           const dec = await decryptData(blob, secretKey);
-           blob = dec as Blob;
+      const blob = await fetchBlob(f.firebaseUrl);
+      if (shareMode && navigator.canShare) {
+        const file = new File([blob], f.fileName, { type: blob.type || 'application/octet-stream' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: f.fileName, text: 'File dari RafQR' });
+          return;
         }
-        zip.file(f.fileName, blob);
       }
-      const content = await zip.generateAsync({ type: 'blob' });
-      saveAs(content, `rafqr_${id}.zip`);
-      toast('Paket ZIP berhasil diunduh.', 'success');
+      saveAs(blob, f.fileName);
     } catch (err) {
-      toast('Gagal memaketkan ZIP.', 'error');
+      toast((err as Error).message || 'Gagal menyimpan berkas.', 'error');
+    } finally {
+      setBusyFile(null);
+    }
+  };
+
+  const downloadZip = async () => {
+    if (!session?.files?.length) return;
+    if ((session.totalSize || 0) > MAX_ZIP_BYTES) {
+      toast(`Total ${formatLimit(session.totalSize)} terlalu besar untuk dipaketkan. Unduh per file.`, 'error');
+      return;
+    }
+    setIsZipping(true);
+    try {
+      const zip = new JSZip();
+      for (const f of session.files) zip.file(f.fileName, await fetchBlob(f.firebaseUrl));
+      saveAs(await zip.generateAsync({ type: 'blob' }), `rafqr-${id}.zip`);
+    } catch (err) {
+      toast((err as Error).message || 'Gagal memaketkan ZIP.', 'error');
     } finally {
       setIsZipping(false);
     }
   };
 
   const copyText = async () => {
-    const text = decryptedText || session?.textContent;
+    const text = draft || decryptedText || session?.textContent;
     if (!text) return;
-    try { await navigator.clipboard.writeText(text); } catch (err) {
-      const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const t = document.createElement('textarea');
+      t.value = text;
+      document.body.appendChild(t);
+      t.select();
+      document.execCommand('copy');
+      document.body.removeChild(t);
     }
     setCopied(true);
-    toast('Teks berhasil disalin.', 'success');
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-paper flex flex-col items-center justify-center p-6 text-center">
-       <div className="w-12 h-12 border-3 border-ink border-t-accent animate-spin rounded-full mb-4" />
-       <p className="text-sm font-bold neo-mono text-muted">Memuat paket…</p>
-    </div>
-  );
+  const shareText = async () => {
+    const text = draft || decryptedText || session?.textContent;
+    if (!text) return;
+    const file = new File([text], `rafqr-pesan-${id}.txt`, { type: 'text/plain' });
+    if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: 'Pesan dari RafQR' }).catch(() => {});
+    else copyText();
+  };
 
-  if (error) return (
-    <div className="min-h-screen bg-paper flex flex-col items-center justify-center p-6 text-center">
-      <h1 className="text-7xl sm:text-8xl font-extrabold mb-4 tracking-tight">404</h1>
-      <p className="text-lg font-medium text-muted max-w-sm mb-8">{error}</p>
-      <button onClick={() => window.location.href = '/'} className="neo-btn bg-ink text-white px-8 py-3.5">
-        Kembali ke beranda
-      </button>
-    </div>
-  );
+  const saveDraft = () => {
+    localStorage.setItem(textKey, draft);
+    setDecryptedText(draft);
+    setEditing(false);
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 2500);
+  };
+
+  /* ── states ───────────────────────────────────────────────────── */
+  if (loading && !session) {
+    return (
+      <AppShell center>
+        <div className="stack" style={{ justifyItems: 'center', gap: 12 }}>
+          <span className="count num" aria-live="polite"><s /> Memuat paket…</span>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppShell center>
+        <div className="stack" style={{ justifyItems: 'center', maxWidth: 340 }}>
+          <span className="big404">404</span>
+          <h2 className="mid">Sesi sudah habis</h2>
+          <p className="lead" style={{ textAlign: 'center' }}>
+            Semua sesi dihapus otomatis 30 menit setelah dibuat, supaya tidak ada jejak yang tertinggal.
+          </p>
+          <div className="info" style={{ width: '100%' }}><ClockIcon size={15} /> {error}</div>
+          <a className="btn lg" style={{ padding: '0 26px' }} href="/">Minta sesi baru ke pengirim</a>
+          <a className="btn ghost" href="/">Buka beranda</a>
+        </div>
+      </AppShell>
+    );
+  }
 
   if (isLocked) {
     return (
-      <div className="min-h-screen bg-paper flex flex-col items-center justify-center p-6">
-        <form onSubmit={handleUnlock} className="neo-card max-w-sm w-full text-center p-8 flex flex-col items-center">
-           <span className="w-16 h-16 bg-accent border-2 border-ink rounded-lg shadow-neo flex items-center justify-center mb-5"><LockIcon /></span>
-           <h2 className="text-2xl font-extrabold tracking-tight mb-2">Terkunci PIN</h2>
-           <p className="text-sm font-medium text-muted mb-6">Masukkan PIN 4 angka untuk membuka data.</p>
-           <input type="password" value={enteredPin} onChange={(e) => setEnteredPin(e.target.value)} placeholder="••••" className="neo-input neo-mono text-center text-3xl tracking-[0.4em] mb-6" autoFocus />
-           <button type="submit" className="w-full neo-btn bg-ink text-white py-3.5 text-base hover:bg-accent hover:text-ink">Buka</button>
+      <AppShell center>
+        <form onSubmit={unlock} className="card pad stack" style={{ width: '100%', maxWidth: 340, justifyItems: 'center' }}>
+          <span className="tile y" style={{ width: 48, height: 48, borderRadius: 15 }}><LockIcon size={22} /></span>
+          <h2 className="mid">Sesi terkunci</h2>
+          <p className="lead" style={{ textAlign: 'center', fontSize: 13.5 }}>
+            Minta PIN 4 angka dari pengirim. Tidak ada batas percobaan — datamu sendiri, bukan bank.
+          </p>
+          <PinBoxes value={pin} onChange={setPin} onComplete={() => document.getElementById('unlock-submit')?.click()} />
+          {pinError && <p className="err" role="alert">{pinError}</p>}
+          <Btn id="unlock-submit" type="submit" block size="lg">Buka isi sesi</Btn>
+          <p className="hint">Sesi <span className="mono">{String(id)}</span> · {secondsLeft !== null ? `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}` : '—'} tersisa</p>
         </form>
-      </div>
+      </AppShell>
     );
   }
 
   if (isEncrypted && !isDecrypted) {
     return (
-      <div className="min-h-screen bg-paper flex flex-col items-center justify-center p-6">
-        <form onSubmit={handleDecrypt} className="neo-card max-w-sm w-full text-center p-8 flex flex-col items-center">
-           <span className="mb-5"><Logo size={56} /></span>
-           <h2 className="text-2xl font-extrabold tracking-tight mb-2">Terenkripsi E2EE</h2>
-           <p className="text-sm font-medium text-muted mb-6">Masukkan kunci rahasia dari pengirim. Dekripsi berjalan lokal di perangkat ini.</p>
-           <input
-              value={secretKey}
-              onChange={(e) => setSecretKey(e.target.value)}
-              placeholder="Kunci rahasia…"
-              className="neo-input neo-mono text-center text-base mb-6"
-              autoFocus
-           />
-           <button type="submit" className="w-full neo-btn bg-ink text-white py-3.5 text-base hover:bg-accent hover:text-ink">Dekripsi</button>
-           <p className="mt-5 text-[11px] font-medium text-muted">Kunci tidak pernah meninggalkan perangkat Anda.</p>
+      <AppShell center>
+        <form onSubmit={decrypt} className="card pad stack" style={{ width: '100%', maxWidth: 360, justifyItems: 'center' }}>
+          <span className="tile y" style={{ width: 48, height: 48, borderRadius: 15 }}><ShieldIcon size={22} /></span>
+          <h2 className="mid">File terenkripsi</h2>
+          <p className="lead" style={{ textAlign: 'center', fontSize: 13.5 }}>
+            Pengirim mengirim kuncinya lewat chat terpisah. Isi di bawah untuk membuka file di perangkat ini.
+          </p>
+          <div className="field" style={{ width: '100%' }}>
+            <label htmlFor="dk">Kunci rahasia</label>
+            <input id="dk" className="inp m" style={{ textAlign: 'center' }} value={secretKey} onChange={(e) => setSecretKey(e.target.value)} placeholder="minimal 8 karakter" />
+          </div>
+          {decryptError && <p className="err" role="alert">{decryptError}</p>}
+          <Btn type="submit" block size="lg">Dekripsi di perangkat ini</Btn>
+          <p className="hint">Kunci tidak pernah dikirim ke server mana pun.</p>
         </form>
-      </div>
+      </AppShell>
     );
   }
 
+  /* ── main ─────────────────────────────────────────────────────── */
+  const files = session?.files ?? [];
+  const zipAllowed = (session?.totalSize || 0) <= MAX_ZIP_BYTES;
+  const lbFile = lightbox !== null ? files[lightbox] : null;
+  const canPreview = (f: SessionFile) => !!blobs[keyOf(f)] && !!f.fileType?.startsWith('image/');
+
   return (
-    <PageShell>
-      <SiteHeader
-        onLogoClick={() => (window.location.href = '/')}
-        label="RafQR"
-        right={
-          <span className="flex items-center gap-2 bg-ink text-white px-4 py-2 rounded-md text-xs font-bold neo-mono">
-            {isEncrypted && <span className="w-2 h-2 bg-accent rounded-full" title="E2EE" />}
-            {isEncrypted ? 'Secured' : 'Public'}
-          </span>
-        }
+    <AppShell>
+      <TopBar
+        onLogoClick={() => { window.location.href = '/'; }}
+        right={<span className="badge n">{isEncrypted ? 'E2EE' : 'Publik'}</span>}
       />
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-5 py-10 space-y-10 animate-fade-in pb-24">
-        {session?.ghost && (
-           <div className="bg-danger border-2 border-ink rounded-lg p-5 flex items-start gap-3 text-white shadow-neo">
-              <WarningIcon className="w-8 h-8 shrink-0" />
-              <div>
-                 <h4 className="font-bold text-base mb-0.5">Akses terakhir (mode auto-hapus)</h4>
-                 <p className="text-sm font-medium opacity-90">Data telah dihapus dari server. Simpan sekarang atau hilang selamanya.</p>
-              </div>
-           </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+      <main className="page tight">
+        <div className="row wrapr" style={{ alignItems: 'flex-end', gap: 10 }}>
           <div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Paket diterima</h2>
-            <p className="text-sm font-medium text-muted mt-1">Transmisi aman diterima dengan baik.</p>
+            <h1 className="big" style={{ fontSize: 26 }}>
+              {files.length > 0 ? `${files.length} file masuk` : 'Pesan masuk'}
+            </h1>
+            <p className="tiny muted" style={{ marginTop: 3 }}>
+              Total {formatSize(session?.totalSize || 0)}
+              {session?.createdAt ? ` · dibuat ${Math.max(1, Math.round((Date.now() - session.createdAt) / 60000))} menit lalu` : ''}
+            </p>
           </div>
-          {session?.files && session.files.length > 0 && (
-            <button onClick={downloadAllAsZip} disabled={isZipping} className={`neo-btn py-3 px-6 ${isZipping ? 'bg-paper cursor-not-allowed shadow-none' : 'bg-accent'}`}>
-              <DownloadIcon className="w-4 h-4" />
-              {isZipping ? 'Mengompres…' : 'Unduh semua (.zip)'}
-            </button>
+          <span className="spacer" />
+          {files.length > 0 && (
+            zipAllowed ? (
+              <Btn size="sm" variant="white" onClick={downloadZip} disabled={isZipping}>
+                <DownloadIcon size={14} /> {isZipping ? 'Mengompres…' : 'Unduh semua'}
+              </Btn>
+            ) : (
+              <span className="tiny muted">ZIP dilewati · total {formatLimit(session!.totalSize)}</span>
+            )
           )}
         </div>
 
-        {session?.files && session.files.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-muted uppercase tracking-widest">
-               File ({session.files.length})
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {session.files.map((file, i) => (
-                <div key={i} className="neo-card p-0 flex flex-col overflow-hidden">
-                  <div className="p-5 flex-1">
-                    <div className="flex justify-between items-center mb-4">
-                       <span className="bg-ink text-accent p-2 rounded-md">
-                          {getFileIcon(file.fileName.split('.').pop() || '')}
-                       </span>
-                       <span className="neo-mono text-[11px] font-bold bg-accent/30 rounded px-2 py-0.5">{formatSize(file.fileSize)}</span>
-                    </div>
-                    <p className="text-sm font-bold break-words leading-tight mb-3 line-clamp-2">{file.fileName}</p>
-
-                    {previews[file.fileName] ? (
-                       <div className="mt-3 border-2 border-ink rounded-md bg-ink overflow-hidden">
-                         {previews[file.fileName].type === 'image' && <img src={previews[file.fileName].url} className="w-full h-auto object-cover max-h-48" alt="Pratinjau" />}
-                         {previews[file.fileName].type === 'video' && <video src={previews[file.fileName].url} controls className="w-full max-h-48 bg-black" />}
-                         {previews[file.fileName].type === 'audio' && <audio src={previews[file.fileName].url} controls className="w-full" />}
-                         {previews[file.fileName].type === 'unknown' && <div className="p-6 text-center text-xs font-bold text-white">Pratinjau tidak didukung</div>}
-                       </div>
-                    ) : (
-                       <div className="mt-3">
-                         {['png','jpg','jpeg','gif','webp','mp4','webm','mp3','wav'].includes(file.fileName.split('.').pop()?.toLowerCase() || '') && (
-                           <button onClick={() => previewFile(file.firebaseUrl, file.fileName)} disabled={loadingPreview === file.fileName} className="text-[11px] font-bold bg-white border-2 border-ink rounded px-3 py-1.5 shadow-neo-hover hover:bg-accent transition-all">
-                              {loadingPreview === file.fileName ? 'Memuat…' : 'Pratinjau'}
-                           </button>
-                         )}
-                       </div>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 border-t-2 border-ink">
-                     <button onClick={() => downloadFile(file.firebaseUrl, file.fileName, false)} className="py-3.5 text-xs font-bold bg-white hover:bg-accent transition-colors border-r-2 border-ink flex items-center justify-center gap-2">
-                       {currentFileDownload === file.fileName ? 'Memproses…' : (<><DownloadIcon className="w-4 h-4" /> Simpan</>)}
-                     </button>
-                     <button onClick={() => downloadFile(file.firebaseUrl, file.fileName, true)} className="py-3.5 text-xs font-bold bg-white hover:bg-accent transition-colors flex items-center justify-center gap-2">
-                       <ShareIcon className="w-4 h-4" /> Bagikan
-                     </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {files.length > 0 && (
+          <div className="rows">
+            {files.map((f, i) => {
+              const key = keyOf(f);
+              const preview = blobs[key];
+              const thumb = f.fileType?.startsWith('image/') && preview
+                ? <span className="img lg"><img src={preview} alt="" loading="lazy" decoding="async" /></span>
+                : undefined;
+              return (
+                <FileRow
+                  key={key}
+                  name={f.fileName}
+                  meta={`${formatSize(f.fileSize)} · ${(f.fileName.split('.').pop() || '').toUpperCase()}`}
+                  thumb={thumb}
+                  onOpen={canPreview(f) ? () => setLightbox(i) : undefined}
+                  actions={
+                    <>
+                      <Btn size="icon" onClick={() => download(f, true)} aria-label={`Bagikan ${f.fileName}`} disabled={busyFile !== null}>
+                        <ShareIcon size={16} />
+                      </Btn>
+                      <Btn size="icon" onClick={() => download(f)} aria-label={`Unduh ${f.fileName}`} disabled={busyFile !== null}>
+                        {busyFile === f.fileName ? <span className="spin" style={{ width: 15, height: 15, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }} /> : <DownloadIcon size={16} />}
+                      </Btn>
+                    </>
+                  }
+                />
+              );
+            })}
           </div>
         )}
 
-        {(decryptedText || session?.textContent) && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-               <h3 className="text-xs font-bold text-muted uppercase tracking-widest">Pesan</h3>
-               <button onClick={copyText} className="text-xs font-bold bg-ink text-white rounded px-4 py-2 hover:bg-accent hover:text-ink transition-colors">
-                 {copied ? 'Tersalin' : 'Salin teks'}
-               </button>
+        {(draft || decryptedText || session?.textContent) && (
+          <>
+            <div className="sechead">
+              <h4 className="sech">Pesan</h4>
+              <div className="row" style={{ gap: 6 }}>
+                {!editing && <Btn size="sm" variant="white" onClick={() => { setDraft(draft || decryptedText || session?.textContent || ''); setEditing(true); }}><EditIcon size={13} /> Edit</Btn>}
+                <Copied show={copied} />
+                {!copied && !editing && <Btn size="sm" variant="white" onClick={copyText}><CopyGlyph size={13} /> Salin</Btn>}
+              </div>
             </div>
-            <div className="neo-card p-6 sm:p-8 text-base font-medium leading-relaxed whitespace-pre-wrap">
-              {decryptedText || session?.textContent}
-            </div>
-          </div>
+
+            {editing ? (
+              <div className="card pad editor">
+                <div className="sechead">
+                  <span className="row" style={{ gap: 8 }}>
+                    <span style={{ fontWeight: 650, fontSize: 16 }}>Pesan dari pengirim</span>
+                    <span className="badge n">bisa diedit</span>
+                  </span>
+                  {savedFlash && <span className="saveflash"><CheckIcon size={13} /> Tersimpan</span>}
+                </div>
+                <textarea className="inp" value={draft} onChange={(e) => setDraft(e.target.value)} />
+                <div className="ednote"><LockIcon size={14} /> Disimpan di perangkat ini saja · tidak dikirim balik ke server</div>
+                <div className="row" style={{ gap: 8 }}>
+                  <Btn size="sm" variant="white" style={{ flex: 1 }} onClick={() => setEditing(false)}>Batal</Btn>
+                  <Btn size="sm" style={{ flex: 1 }} onClick={saveDraft}><CheckIcon size={14} /> Simpan perubahan</Btn>
+                </div>
+              </div>
+            ) : (
+              <div className="msg">{draft || decryptedText || session?.textContent}</div>
+            )}
+          </>
         )}
       </main>
 
-      <footer className="w-full relative z-10 py-8 border-t-2 border-ink bg-white mt-auto">
-         <div className="max-w-4xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-           <p className="flex items-center gap-2 text-xs font-medium text-muted">
-             <CheckShieldIcon className="w-4 h-4 text-ok" /> Didekripsi lokal
-           </p>
-           <button onClick={() => window.location.href = '/'} className="neo-btn bg-ink text-white px-5 py-2 text-xs">
-             Sesi baru
-           </button>
-         </div>
-      </footer>
-    </PageShell>
+      <div className="dock">
+        <div className="sum">
+          <span>Sesi berakhir dalam <b className="num">{secondsLeft === null ? '—' : `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, '0')}`}</b></span>
+          <span className="muted">otomatis dihapus</span>
+        </div>
+        <Btn variant="white" block onClick={() => { window.location.href = '/'; }}>
+          <ShieldIcon size={16} /> File tetap di perangkat saya
+        </Btn>
+      </div>
+
+      {lbFile && (
+        <div className="lb" role="dialog" aria-modal="true" aria-label={lbFile.fileName}>
+          <div className="lb-top">
+            <Btn size="icon" onClick={() => setLightbox(null)} aria-label="Tutup pratinjau"><BackIcon size={17} /></Btn>
+            <span className="t">{lbFile.fileName}</span>
+            <span className="spacer" />
+            <span className="badge n">{formatSize(lbFile.fileSize)}</span>
+          </div>
+          <div className="lb-stage">
+            <img src={blobs[keyOf(lbFile)]} alt={lbFile.fileName} />
+          </div>
+          <div className="lb-nav">
+            <Btn size="icon" variant="ghost" onClick={() => setLightbox((v) => Math.max(0, (v ?? 0) - 1))} disabled={lightbox === 0} aria-label="File sebelumnya"><PrevIcon size={16} /></Btn>
+            <span className="dots">
+              {files.map((f, i) => <i key={keyOf(f)} className={i === lightbox ? 'on' : ''} />)}
+            </span>
+            <Btn size="icon" variant="ghost" onClick={() => setLightbox((v) => Math.min(files.length - 1, (v ?? 0) + 1))} disabled={lightbox === files.length - 1} aria-label="File berikutnya"><NextIcon size={16} /></Btn>
+            <span className="num">{(lightbox ?? 0) + 1} / {files.length}</span>
+          </div>
+          <div className="lb-foot">
+            <p className="tiny" style={{ color: 'rgba(255,255,255,.6)', textAlign: 'center', margin: 0 }}>
+              Cubit-ganda untuk zoom · geser untuk pindah area
+            </p>
+            <div className="row" style={{ gap: 8 }}>
+              <Btn variant="white" style={{ flex: 1 }} onClick={() => download(lbFile, true)}><ShareIcon size={15} /> Bagikan</Btn>
+              <Btn variant="yellow" style={{ flex: 1 }} onClick={() => { download(lbFile); setLightbox(null); }}><DownloadIcon size={15} /> Unduh</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+    </AppShell>
   );
 }
