@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { uploadFileToR2 } from '../lib/r2-client';
-import { encryptData } from '../lib/crypto';
+import { CloudProvider } from '../lib/transfer/cloud-provider';
+import P2PSender from '../components/P2PSender';
 import { nanoid } from 'nanoid';
 import QrBox from '../components/BrandedQR';
 import SiteFooter from '../components/Footer';
@@ -17,13 +17,14 @@ import {
 } from '../components/icons';
 import { formatSize } from '../lib/format';
 import { useFilePreviews, fileKey } from '../lib/preview';
-import { MAX_FILE_BYTES, purgeUploads, trackTransfer, trackVisit } from '../lib/session';
+import { MAX_FILE_BYTES, trackVisit } from '../lib/session';
 import { formatLimit } from '../lib/limits';
 
 type Mode = 'send' | 'receive';
 type SendTab = 'files' | 'text';
-type Step = 'input' | 'uploading' | 'success' | 'waiting';
+type Step = 'input' | 'uploading' | 'success' | 'waiting' | 'p2p';
 type RowStatus = 'queued' | 'uploading' | 'done' | 'error';
+const P2P_ENABLED = process.env.NEXT_PUBLIC_P2P_ENABLED === 'true';
 
 interface Row {
   key: string;
@@ -33,12 +34,12 @@ interface Row {
   error?: string;
 }
 
-interface UploadedFile { fileName: string; fileSize: number; fileType: string; firebaseUrl: string; storageRef: string; }
 interface RecentTransfer { id: string; createdAt: number; fileCount: number; }
 
 export default function HomePage() {
   const [mode, setMode] = useState<Mode>('send');
   const [sendTab, setSendTab] = useState<SendTab>('files');
+  const [transferMode, setTransferMode] = useState<'p2p' | 'cloud'>(P2P_ENABLED ? 'p2p' : 'cloud');
   const [step, setStep] = useState<Step>('input');
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -66,7 +67,7 @@ export default function HomePage() {
   const [customId, setCustomId] = useState('');
   const [useCustomId, setUseCustomId] = useState(false);
 
-  const abortRef = useRef<AbortController | null>(null);
+  const cloudRef = useRef<CloudProvider | null>(null);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -212,6 +213,7 @@ export default function HomePage() {
   const resetAll = () => {
     setStep('input');
     setRows([]);
+    setTransferMode(P2P_ENABLED ? 'p2p' : 'cloud');
     setTextContent('');
     setError(null);
     setUniqueId(null);
@@ -226,12 +228,14 @@ export default function HomePage() {
     event.preventDefault();
     const value = openCode.trim();
     let path: string | null = null;
-    if (/^[a-zA-Z0-9_-]{1,64}$/.test(value)) {
+    if (/^p2p:[A-Za-z0-9_-]{16}$/.test(value)) {
+      path = `/p/${value.slice(4)}`;
+    } else if (/^[a-zA-Z0-9_-]{1,64}$/.test(value)) {
       path = `/d/${value}`;
     } else {
       try {
         const url = new URL(value);
-        if (url.origin === window.location.origin && /^\/(d|u)\/[a-zA-Z0-9_-]{1,64}\/?$/.test(url.pathname)) {
+        if (url.origin === window.location.origin && (/^\/(d|u)\/[a-zA-Z0-9_-]{1,64}\/?$/.test(url.pathname) || /^\/p\/[A-Za-z0-9_-]{16}\/?$/.test(url.pathname))) {
           path = url.pathname;
         }
       } catch { /* invalid input is explained below */ }
@@ -244,7 +248,7 @@ export default function HomePage() {
   };
 
   /* ── upload ───────────────────────────────────────────────────── */
-  const handleUpload = async () => {
+  const handleCloudUpload = async () => {
     setError(null);
     const hasText = !!textContent.trim();
     if (rows.length === 0 && !hasText) { setError('Pilih file atau tulis pesan dulu.'); return; }
@@ -254,62 +258,26 @@ export default function HomePage() {
     setStep('uploading');
     setFinalizing(false);
     setCancelling(false);
-    const uploaded: UploadedFile[] = [];
-    const abort = new AbortController();
-    abortRef.current = abort;
+    const provider = new CloudProvider();
+    cloudRef.current = provider;
 
     try {
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'uploading' } : r)));
-        try {
-          const blob = e2eeEnabled ? await encryptData(row.file, encryptionKey) : row.file;
-          if (abort.signal.aborted) throw new DOMException('Dibatalkan', 'AbortError');
-          const { downloadURL, storagePath } = await uploadFileToR2(
-            blob,
-            (p) => setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, progress: p } : r))),
-            row.file.name,
-            abort.signal,
-          );
-          uploaded.push({
-            fileName: row.file.name,
-            fileSize: blob.size,
-            fileType: row.file.type,
-            firebaseUrl: downloadURL,
-            storageRef: storagePath,
-          });
-          setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'done', progress: 100 } : r)));
-        } catch (err) {
-          if ((err as Error).name === 'AbortError') throw err;
-          // One bad file must not sink the whole batch.
-          setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: 'error', progress: 0, error: (err as Error).message } : r)));
-        }
-      }
-
-      if (abort.signal.aborted) throw new DOMException('Dibatalkan', 'AbortError');
-      if (uploaded.length === 0 && !hasText) {
-        setError('Semua file gagal diunggah. Coba lagi.');
-        setStep('input');
-        return;
-      }
-
-      setFinalizing(true);
-      const senderId = customId.trim() || nanoid(10);
-      const res = await fetch('/api/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: senderId,
-          files: uploaded.length > 0 ? uploaded : undefined,
-          textContent: hasText ? textContent.trim() : undefined,
-          pin: pinMode ? pinCode : undefined,
-          e2ee: e2eeEnabled,
-        }),
+      const { id: senderId, uploaded, failedKeys } = await provider.send({
+        files: rows.map(({ key, file }) => ({ key, file })),
+        textContent,
+        customId,
+        pin: pinMode ? pinCode : undefined,
+        encryptionKey: e2eeEnabled ? encryptionKey : undefined,
+      }, (event) => {
+        if (event.type === 'finalizing') { setFinalizing(true); return; }
+        setRows((prev) => prev.map((row) => {
+          if (row.key !== event.key) return row;
+          if (event.type === 'file-start') return { ...row, status: 'uploading' };
+          if (event.type === 'file-progress') return { ...row, progress: event.percent };
+          if (event.type === 'file-done') return { ...row, status: 'done', progress: 100 };
+          return { ...row, status: 'error', progress: 0, error: event.message };
+        }));
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || 'Gagal membuat sesi.');
-      }
 
       setRows((prev) => prev.filter((r) => r.status === 'done'));
       setTtl(1800);
@@ -318,25 +286,34 @@ export default function HomePage() {
       const nextRecent = [{ id: senderId, createdAt: Date.now(), fileCount: uploaded.length }, ...recent.filter((r) => r.id !== senderId)].slice(0, 3);
       setRecent(nextRecent);
       try { localStorage.setItem('rafqr_history', JSON.stringify(nextRecent)); } catch { /* storage may be disabled */ }
-      if (uploaded.length < rows.length) toast(`${rows.length - uploaded.length} file gagal; yang berhasil tetap terkirim.`, 'error');
-      trackTransfer(senderId, uploaded.length > 0 ? uploaded : [{ fileName: 'Pesan teks', fileSize: new Blob([textContent]).size }]);
+      if (failedKeys.length > 0) toast(`${failedKeys.length} file gagal; yang berhasil tetap terkirim.`, 'error');
     } catch (err) {
-      // No session points at these objects if the request failed or was cancelled.
-      await purgeUploads(uploaded.map((f) => f.storageRef));
       setRows((prev) => prev.map((r) => ({ ...r, status: 'queued', progress: 0, error: undefined })));
       setError((err as Error).name === 'AbortError' ? 'Transfer dibatalkan.' : (err as Error).message || 'Gagal membuat sesi.');
       setStep('input');
     } finally {
-      abortRef.current = null;
+      cloudRef.current = null;
       setFinalizing(false);
       setCancelling(false);
     }
   };
 
+  const handleUpload = async () => {
+    if (sendTab === 'files' && transferMode === 'p2p' && P2P_ENABLED) {
+      if (rows.length === 0) { setError('Pilih file dulu.'); return; }
+      const oversized = rows.find((row) => row.file.size > MAX_FILE_BYTES);
+      if (oversized) { setError(`File ${oversized.file.name} melebihi batas ${formatLimit(MAX_FILE_BYTES)}.`); return; }
+      setError(null);
+      setStep('p2p');
+      return;
+    }
+    await handleCloudUpload();
+  };
+
   const cancelUpload = () => {
     if (finalizing) return;
     setCancelling(true);
-    abortRef.current?.abort();
+    cloudRef.current?.cancel();
   };
 
   const startReceiving = async () => {
@@ -426,6 +403,21 @@ export default function HomePage() {
                 { value: 'text', label: 'Teks' },
               ]}
             />
+
+            {sendTab === 'files' && P2P_ENABLED && <div className="p2p-mode-choice" aria-label="Mode transfer">
+              <Segmented
+                value={transferMode}
+                onChange={(next) => {
+                  setTransferMode(next);
+                  if (next === 'p2p') { setPinMode(false); setE2eeEnabled(false); setOptionsOpen(false); }
+                }}
+                options={[
+                  { value: 'p2p', label: 'Langsung (P2P)', icon: <BoltIcon size={15} /> },
+                  { value: 'cloud', label: 'Simpan 30 menit (Cloud)', icon: <CloudUpIcon size={15} /> },
+                ]}
+              />
+              <p className="hint">{transferMode === 'p2p' ? 'File dikirim langsung setelah penerima terhubung.' : 'File diunggah ke R2 dan sesi tersedia selama 30 menit.'}</p>
+            </div>}
 
             {sendTab === 'files' ? (
               <>
@@ -571,7 +563,7 @@ export default function HomePage() {
             onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ''; }}
           />
 
-          <Disclosure open={optionsOpen} onToggle={() => setOptionsOpen(!optionsOpen)}>
+          {(sendTab === 'text' || transferMode === 'cloud') && <Disclosure open={optionsOpen} onToggle={() => setOptionsOpen(!optionsOpen)}>
             <div className="stack tight" style={{ paddingTop: 8 }}>
               <Toggle
                 label="Enkripsi E2EE"
@@ -635,10 +627,12 @@ export default function HomePage() {
                 />
               </Field>
             </div>
-          </Disclosure>
+          </Disclosure>}
 
           <p className="hint" style={{ textAlign: 'center' }}>
-            Sesi &amp; file terhapus otomatis 30 menit setelah dibuat.
+            {sendTab === 'files' && transferMode === 'p2p' && P2P_ENABLED
+              ? 'Sesi menunggu penerima hingga 10 menit. File tidak diunggah ke Cloud.'
+              : 'Sesi tersedia 30 menit. File Cloud mengikuti kebijakan pembersihan R2.'}
           </p>
 
           {!busy && recent.length > 0 && (
@@ -825,6 +819,14 @@ export default function HomePage() {
       </>
     );
   };
+
+  if (step === 'p2p') return <P2PSender
+    files={rows.map(({ key, file }) => ({ key, file }))}
+    onAddFiles={addFiles}
+    onRemoveFile={removeRow}
+    onCloudFallback={() => { setTransferMode('cloud'); void handleCloudUpload(); }}
+    onClose={resetAll}
+  />;
 
   return (
     <AppShell>
