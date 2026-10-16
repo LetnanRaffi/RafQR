@@ -342,7 +342,7 @@ export default function HomePage() {
   const startReceiving = async () => {
     setError(null);
     const id = customId.trim();
-    if (!id) { setError('ID penerimaan belum dibuat.'); return; }
+    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(id)) { setError('ID penerimaan harus 1–64 huruf, angka, tanda hubung, atau garis bawah.'); return; }
     const res = await fetch('/api/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -545,7 +545,7 @@ export default function HomePage() {
           {!busy && <form className="card pad stack open-session-form" onSubmit={openSession}>
             <div className="stack tight">
               <h2 className="sml">Sudah punya kode atau tautan?</h2>
-              <p className="hint">Tempel tautan QRData atau ketik kode sesi untuk langsung membuka kiriman.</p>
+              <p className="hint">Tempel tautan QRData atau ketik kode sesi untuk membuka kiriman atau mengirim ke penerima.</p>
             </div>
             <div className="row open-session">
               <input
@@ -698,7 +698,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <p className="hint">Atau pakai ID sendiri supaya penerima bisa mengetik, bukan scan.</p>
+          <p className="hint">Atau pakai ID sendiri supaya pengirim bisa mengetik, bukan scan.</p>
           <div className="row receive-custom" style={{ gap: 10 }}>
             <Btn
               size="sm"
@@ -712,8 +712,9 @@ export default function HomePage() {
                 className="inp m"
                 value={customId}
                 onChange={(e) => setCustomId(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toUpperCase())}
-                placeholder="mis. RAF-123"
+                placeholder="mis. DATA-123"
                 aria-label="ID kustom"
+                maxLength={64}
               />
             )}
           </div>
