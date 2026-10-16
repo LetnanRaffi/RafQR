@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/api/', '/admin/'],
     },
-    sitemap: 'https://qr.raffitech.biz.id/sitemap.xml',
+    sitemap: 'https://qrdata.biz.id/sitemap.xml',
   };
 }

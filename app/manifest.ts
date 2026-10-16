@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'RafQR Data Bridge',
-    short_name: 'RafQR',
+    name: 'QRData',
+    short_name: 'QRData',
     description: 'Instant & Ephemeral Data Bridge for your files and notes',
     start_url: '/',
     display: 'standalone',

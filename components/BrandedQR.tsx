@@ -41,7 +41,7 @@ export default function QrBox({
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         }
         const a = document.createElement('a');
-        a.download = `rafqr-${Date.now()}.png`;
+        a.download = `qrdata-${Date.now()}.png`;
         a.href = canvas.toDataURL('image/png');
         a.click();
         URL.revokeObjectURL(url);

@@ -221,7 +221,7 @@ export default function ReceivePage() {
       const zip = new JSZip();
       for (const f of session.files) zip.file(f.fileName, await fetchBlob(f.firebaseUrl));
       const blob = await zip.generateAsync({ type: 'blob' });
-      const name = `rafqr-${id}.zip`;
+      const name = `qrdata-${id}.zip`;
       saveAs(blob, name);
       toast('Unduhan ZIP dimulai.', 'success');
     } catch (err) {
@@ -252,9 +252,9 @@ export default function ReceivePage() {
   const shareText = async () => {
     const text = draft || decryptedText || session?.textContent;
     if (!text) return;
-    const file = new File([text], `rafqr-pesan-${id}.txt`, { type: 'text/plain' });
+    const file = new File([text], `qrdata-pesan-${id}.txt`, { type: 'text/plain' });
     try {
-      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: 'Pesan dari RafQR' });
+      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: 'Pesan dari QRData' });
       else copyText();
     } catch { /* user dismissed the share sheet */ }
   };

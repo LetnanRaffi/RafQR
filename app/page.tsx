@@ -237,7 +237,7 @@ export default function HomePage() {
       } catch { /* invalid input is explained below */ }
     }
     if (!path) {
-      setOpenCodeError('Masukkan kode sesi atau tautan RafQR yang valid.');
+      setOpenCodeError('Masukkan kode sesi atau tautan QRData yang valid.');
       return;
     }
     window.location.assign(path);
@@ -545,15 +545,15 @@ export default function HomePage() {
           {!busy && <form className="card pad stack open-session-form" onSubmit={openSession}>
             <div className="stack tight">
               <h2 className="sml">Sudah punya kode atau tautan?</h2>
-              <p className="hint">Tempel tautan RafQR atau ketik kode sesi untuk langsung membuka kiriman.</p>
+              <p className="hint">Tempel tautan QRData atau ketik kode sesi untuk langsung membuka kiriman.</p>
             </div>
             <div className="row open-session">
               <input
                 className="inp"
                 value={openCode}
                 onChange={(e) => { setOpenCode(e.target.value); setOpenCodeError(null); }}
-                placeholder="Kode sesi atau tautan RafQR"
-                aria-label="Kode sesi atau tautan RafQR"
+                placeholder="Kode sesi atau tautan QRData"
+                aria-label="Kode sesi atau tautan QRData"
                 autoComplete="off"
                 spellCheck={false}
               />
