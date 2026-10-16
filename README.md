@@ -1,6 +1,6 @@
 # RafQR — Monochrome v2.2
 
-Transfer file dan teks dari PC ke HP secara instan via QR Code. Data disimpan sementara dan otomatis terhapus dalam 30 menit.
+Transfer file dan teks dari PC ke HP via QR Code. Mode Cloud menyimpan file sementara selama 30 menit. Mode langsung (P2P) memakai WebRTC dan dapat diaktifkan setelah validasi perangkat.
 
 ## Fitur Unggulan
 
@@ -10,6 +10,7 @@ Transfer file dan teks dari PC ke HP secara instan via QR Code. Data disimpan se
 - 🔒 **Aman & Privat**: Tanpa registrasi, pembersihan otomatis oleh sistem.
 - 🎨 **Premium Monochrome UI**: Desain minimalis brutalist yang bersih dan modern.
 - 📁 **Multi-File & Text**: Kirim banyak file sekaligus atau catatan teks panjang.
+- 🔗 **Mode Langsung (P2P)**: Transfer browser ke browser melalui WebRTC, dengan verifikasi SHA-256 dan pilihan pindah ke Cloud jika koneksi gagal. Aktif hanya jika `NEXT_PUBLIC_P2P_ENABLED=true`.
 
 ## Tech Stack
 
@@ -20,6 +21,7 @@ Transfer file dan teks dari PC ke HP secara instan via QR Code. Data disimpan se
 - **Session**: Upstash Redis (TTL 30 menit + rate limiting)
 - **Analytics**: Supabase **Postgres** — hanya untuk metrik dashboard, bukan penyimpanan file
 - **QR Code**: qrcode.react
+- **P2P signaling**: Cloudflare Worker + Durable Object; file bergerak melalui WebRTC DataChannel.
 - **Icon**: Lucide-inspired SVG / Custom Logo
 
 > Supabase **Storage** tidak lagi dipakai. Seluruh file berada di R2 dan tidak pernah melewati server aplikasi.
@@ -71,7 +73,23 @@ Transfer file dan teks dari PC ke HP secara instan via QR Code. Data disimpan se
 
    # Kunci dashboard /admin — jangan pakai prefix NEXT_PUBLIC_
    ADMIN_SECRET=pilih-string-acak-panjang
+
+   # Mode P2P (aktifkan setelah uji perangkat)
+   NEXT_PUBLIC_P2P_ENABLED=true
+   NEXT_PUBLIC_P2P_SIGNALING_URL=https://rafqr-signaling-production.<subdomain>.workers.dev
+   NEXT_PUBLIC_P2P_ICE_SERVERS=[{"urls":"stun:stun.l.google.com:19302"}]
+   NEXT_PUBLIC_P2P_CHUNK_BYTES=16384
+   NEXT_PUBLIC_P2P_CONNECT_TIMEOUT_MS=10000
+   NEXT_PUBLIC_P2P_BLOB_MAX_MB=100
    ```
+
+### Mode langsung (P2P)
+
+Mode P2P memakai signaling Worker terpisah; Worker hanya menangani kode sesi dan pesan WebRTC. Konfigurasi serta perintah deploy ada di [signaling/README.md](signaling/README.md). `ALLOWED_ORIGINS` di Worker harus memuat origin frontend yang dipakai. Untuk pengembangan lokal, jalankan `npx wrangler dev --config signaling/wrangler.jsonc --port 8787`, lalu jalankan Next.js dengan `NEXT_PUBLIC_P2P_ENABLED=true` dan `NEXT_PUBLIC_P2P_SIGNALING_URL=http://127.0.0.1:8787`.
+
+Penerima perlu mengetuk tombol simpan untuk setiap file. Chrome dengan File System Access API menulis langsung ke disk; browser lain hanya dapat memakai unduhan Blob untuk file sampai batas `NEXT_PUBLIC_P2P_BLOB_MAX_MB`. Koneksi WebRTC terenkripsi dengan DTLS. Tidak ada resume atau TURN pada konfigurasi awal; jaringan NAT ketat dapat gagal dan pengirim dapat memakai tombol Cloud dengan file yang sudah dipilih.
+
+Setelah deploy production, uji transfer 2 GB di Chrome desktop dan Chrome Android fisik, file kosong, beberapa file, putus koneksi, fallback Cloud, serta unduhan Cloud. Build dan tes lokal saja tidak membuktikan kestabilan perangkat fisik.
 
 ### Konfigurasi Cloudflare R2
 

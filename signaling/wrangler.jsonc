@@ -1,0 +1,45 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "rafqr-signaling",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-15",
+  "durable_objects": {
+    "bindings": [{ "name": "SESSIONS", "class_name": "SignalingSession" }]
+  },
+  "ratelimits": [
+    { "name": "SESSION_CREATION_LIMITER", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }
+  ],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SignalingSession"] }],
+  "vars": {
+    "ALLOWED_ORIGINS": "http://localhost:3000",
+    "P2P_WAIT_TIMEOUT_MS": "600000"
+  },
+  "env": {
+    "staging": {
+      "name": "rafqr-signaling-staging",
+      "durable_objects": {
+        "bindings": [{ "name": "SESSIONS", "class_name": "SignalingSession" }]
+      },
+      "ratelimits": [
+        { "name": "SESSION_CREATION_LIMITER", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }
+      ],
+      "vars": {
+        "ALLOWED_ORIGINS": "http://localhost:3000",
+        "P2P_WAIT_TIMEOUT_MS": "600000"
+      }
+    },
+    "production": {
+      "name": "rafqr-signaling-production",
+      "durable_objects": {
+        "bindings": [{ "name": "SESSIONS", "class_name": "SignalingSession" }]
+      },
+      "ratelimits": [
+        { "name": "SESSION_CREATION_LIMITER", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }
+      ],
+      "vars": {
+        "ALLOWED_ORIGINS": "https://qrdata.biz.id,https://qr.raffitech.biz.id",
+        "P2P_WAIT_TIMEOUT_MS": "600000"
+      }
+    }
+  }
+}

@@ -16,6 +16,7 @@ import {
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { canShareFiles, shareFile } from '../../../lib/download';
+import { streamSaveCloudFile } from '../../../lib/transfer/save-cloud-file';
 
 interface SessionFile { fileName: string; fileSize: number; fileType: string; firebaseUrl: string; storageRef?: string; }
 interface FileSession {
@@ -148,6 +149,8 @@ export default function ReceivePage() {
   useEffect(() => {
     if (!session?.files || isLocked || isEncrypted !== isDecrypted) return;
     session.files.forEach((f) => {
+      // A preview must never fetch a multi-gigabyte file into browser memory.
+      if (f.fileSize > 25 * 1024 * 1024 || !/^(image|video|audio)\//.test(f.fileType)) return;
       const key = keyOf(f);
       if (previews[key]) return;
       fetchBlob(f.firebaseUrl)
@@ -199,6 +202,11 @@ export default function ReceivePage() {
   const download = async (f: SessionFile, action: 'download' | 'share' = 'download') => {
     setBusyFile(f.fileName);
     try {
+      if (action === 'download' && !session?.e2ee && f.fileSize > 100 * 1024 * 1024) {
+        await streamSaveCloudFile(f.firebaseUrl, f.fileName);
+        toast('File tersimpan.', 'success');
+        return;
+      }
       const blob = await fetchBlob(f.firebaseUrl);
       if (action === 'share') {
         await shareFile(blob, f.fileName);

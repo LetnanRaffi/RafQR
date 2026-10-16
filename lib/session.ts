@@ -35,3 +35,12 @@ export const trackVisit = (): void => {
     body: JSON.stringify({ type: 'visit' }),
   }).catch(() => {});
 };
+
+/** Anonymous aggregate P2P counters; never include session codes or file names. */
+export const trackP2PMetric = (event: 'session_created' | 'connected' | 'verified' | 'connect_failed' | 'fallback_chosen'): void => {
+  fetch('/api/p2p-metric', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event }),
+  }).catch(() => {});
+};

@@ -17,6 +17,7 @@ uploads/
 
 # Next.js
 .next/
+signaling/.wrangler/
 out/
 
 # Build
