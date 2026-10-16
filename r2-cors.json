@@ -1,20 +1,17 @@
-[
-  {
-    "AllowedOrigins": [
-      "https://qrdata.biz.id",
-      "https://qr.raffitech.biz.id",
-      "http://localhost:3000"
-    ],
-    "AllowedMethods": [
-      "PUT",
-      "GET"
-    ],
-    "AllowedHeaders": [
-      "*"
-    ],
-    "ExposeHeaders": [
-      "ETag"
-    ],
-    "MaxAgeSeconds": 3600
-  }
-]
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": [
+          "https://qrdata.biz.id",
+          "https://qr.raffitech.biz.id",
+          "http://localhost:3000"
+        ],
+        "methods": ["PUT", "GET"],
+        "headers": ["*"]
+      },
+      "exposeHeaders": ["ETag"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+}
