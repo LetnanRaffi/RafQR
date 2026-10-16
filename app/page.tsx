@@ -39,7 +39,7 @@ interface RecentTransfer { id: string; createdAt: number; fileCount: number; }
 export default function HomePage() {
   const [mode, setMode] = useState<Mode>('send');
   const [sendTab, setSendTab] = useState<SendTab>('files');
-  const [transferMode, setTransferMode] = useState<'p2p' | 'cloud'>(P2P_ENABLED ? 'p2p' : 'cloud');
+  const [transferMode, setTransferMode] = useState<'p2p' | 'cloud'>('cloud');
   const [step, setStep] = useState<Step>('input');
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -213,7 +213,7 @@ export default function HomePage() {
   const resetAll = () => {
     setStep('input');
     setRows([]);
-    setTransferMode(P2P_ENABLED ? 'p2p' : 'cloud');
+    setTransferMode('cloud');
     setTextContent('');
     setError(null);
     setUniqueId(null);
@@ -404,19 +404,17 @@ export default function HomePage() {
               ]}
             />
 
-            {sendTab === 'files' && P2P_ENABLED && <div className="p2p-mode-choice" aria-label="Mode transfer">
-              <Segmented
-                value={transferMode}
-                onChange={(next) => {
+            {sendTab === 'files' && P2P_ENABLED && <div className="p2p-mode-choice">
+              <Toggle
+                label="Transfer langsung (P2P)"
+                hint={transferMode === 'p2p' ? 'File dikirim langsung setelah penerima terhubung.' : 'Nonaktif: file disimpan di Cloud selama 30 menit.'}
+                checked={transferMode === 'p2p'}
+                onChange={() => {
+                  const next = transferMode === 'p2p' ? 'cloud' : 'p2p';
                   setTransferMode(next);
                   if (next === 'p2p') { setPinMode(false); setE2eeEnabled(false); setOptionsOpen(false); }
                 }}
-                options={[
-                  { value: 'p2p', label: 'Langsung (P2P)', icon: <BoltIcon size={15} /> },
-                  { value: 'cloud', label: 'Simpan 30 menit (Cloud)', icon: <CloudUpIcon size={15} /> },
-                ]}
               />
-              <p className="hint">{transferMode === 'p2p' ? 'File dikirim langsung setelah penerima terhubung.' : 'File diunggah ke R2 dan sesi tersedia selama 30 menit.'}</p>
             </div>}
 
             {sendTab === 'files' ? (
