@@ -1,6 +1,7 @@
 [
   {
     "AllowedOrigins": [
+      "https://qrdata.biz.id",
       "https://qr.raffitech.biz.id",
       "http://localhost:3000"
     ],

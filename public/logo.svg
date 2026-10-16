@@ -1,4 +1,5 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>QRData</title>
   <rect width="32" height="32" rx="9" fill="#111113"/>
   <path d="M7 7H14V14H7V7ZM7 18H14V25H7V18ZM18 7H25V14H18V7Z" fill="#FACC15"/>
   <path d="M18 18H21.5V21.5H18V18ZM21.5 21.5H25V25H21.5V21.5ZM18 22.5H20.5V25H18V22.5ZM23.5 18H25V20.5H23.5V18Z" fill="#FACC15"/>

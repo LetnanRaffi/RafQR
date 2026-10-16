@@ -1,6 +1,6 @@
 'use client';
 
-/** RafQR mark: ink tile, accent glyph. Matches `.brand .mark` in the design tokens. */
+/** QRData mark: ink tile, accent glyph. Matches `.brand .mark` in the design tokens. */
 export const Logo = ({ size = 28, className = '' }: { size?: number; className?: string }) => (
   <svg
     width={size}

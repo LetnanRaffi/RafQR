@@ -148,7 +148,7 @@ export default function P2PSender({ files, onAddFiles, onRemoveFile, onCloudFall
     <TopBar onLogoClick={onClose} right={<span className="badge y">Langsung (P2P)</span>} />
     <main className="page narrow stack p2p-sender">
       <header className="stack tight">
-        <span className="p2p-eyebrow">RAFQR / TRANSFER LANGSUNG</span>
+        <span className="p2p-eyebrow">QRDATA / TRANSFER LANGSUNG</span>
         <h1 className="big">{labels[status]}.</h1>
         <p className="lead">File bergerak antarperangkat melalui koneksi WebRTC. Biarkan kedua tab tetap terbuka sampai verifikasi selesai.</p>
       </header>

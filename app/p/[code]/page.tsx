@@ -150,7 +150,7 @@ export default function P2PReceivePage() {
       <TopBar onLogoClick={() => router.push('/')} right={<span className="p2p-mode-label">Transfer langsung</span>} />
       <main className="page narrow p2p-receive">
         <header className="p2p-receive-head">
-          <span className="p2p-eyebrow">RAFQR / P2P</span>
+          <span className="p2p-eyebrow">QRDATA / P2P</span>
           <h1 className="big">Terima file langsung</h1>
           <p className="lead">File dikirim antarperangkat. Biarkan halaman ini tetap terbuka sampai semua file tersimpan.</p>
         </header>

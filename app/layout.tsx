@@ -11,35 +11,35 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://qr.raffitech.biz.id"),
+  metadataBase: new URL("https://qrdata.biz.id"),
   title: {
-    default: "RafQR — Jembatan Transfer File & Teks Paling Kilat & Aman",
-    template: "%s | RafQR",
+    default: "QRData — Jembatan Transfer File & Teks Paling Kilat & Aman",
+    template: "%s | QRData",
   },
-  description: "Kirim file rahasia & teks antar perangkat tanpa instal apapun. RafQR adalah jembatan data tercepat dengan pengaman AES-256 E2EE. Tanpa akun, tanpa jejak, otomatis hancur dalam 30 menit.",
-  keywords: ["transfer file kilat", "kirim file tanpa login", "sharing file aman", "jembatan data qr", "rafqr data transfer", "e2ee file sharing", "pindah data hp ke laptop", "alat transfer file gratis", "secure tunnel data"],
+  description: "Kirim file rahasia & teks antar perangkat tanpa instal apapun. QRData adalah jembatan data tercepat dengan pengaman AES-256 E2EE. Tanpa akun, tanpa jejak, otomatis hancur dalam 30 menit.",
+  keywords: ["transfer file kilat", "kirim file tanpa login", "sharing file aman", "jembatan data qr", "qrdata data transfer", "e2ee file sharing", "pindah data hp ke laptop", "alat transfer file gratis", "secure tunnel data"],
   authors: [{ name: "LetnanRaffi", url: "https://raffitech.biz.id" }],
   creator: "LetnanRaffi",
-  publisher: "RaffiTech Labs",
+  publisher: "RaffiTech Solutions",
   openGraph: {
     type: "website",
     locale: "id_ID",
-    url: "https://qr.raffitech.biz.id",
-    title: "RafQR — Seamless & Instant Secure Data Bridge",
+    url: "https://qrdata.biz.id",
+    title: "QRData — Seamless & Instant Secure Data Bridge",
     description: "Kirim file dan teks secara aman tanpa jejak. Diperkuat dengan AES-256 E2EE Encryption",
-    siteName: "RafQR Data Bridge",
+    siteName: "QRData",
     images: [
       {
         url: "/logo.svg",
         width: 800,
         height: 800,
-        alt: "RafQR Secure Data Bridge",
+        alt: "QRData Secure Data Bridge",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "RafQR Secure Data Bridge",
+    title: "QRData Secure Data Bridge",
     description: "Kirim file dan teks antar perangkat tanpa akun, tanpa jejak.",
     images: ["/logo.svg"],
   },
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "RafQR",
+    title: "QRData",
   },
   icons: {
     icon: '/logo.svg',
@@ -76,8 +76,8 @@ export default function RootLayout({
         {/* SVG Noise filter removed for massive performance boost */}
         <noscript>
           <div style={{ padding: "20px", textAlign: "center", color: "white", background: "#030712" }}>
-            <h1>RafQR — Seamless & Instant Secure Data Transfer</h1>
-            <p>Kirim file dan teks secara instan antar perangkat dengan End-to-End Encryption. Tanpa login, tanpa jejak, maksimal keamanan dengan RafQR Data Bridge buatan RaffiTech Labs.</p>
+            <h1>QRData — Seamless & Instant Secure Data Transfer</h1>
+            <p>Kirim file dan teks secara instan antar perangkat dengan End-to-End Encryption. Tanpa login, tanpa jejak, maksimal keamanan dengan QRData buatan RaffiTech Solutions.</p>
             <p><strong>Silakan aktifkan JavaScript untuk menggunakan aplikasi ini.</strong></p>
           </div>
         </noscript>

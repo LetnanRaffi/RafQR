@@ -21,7 +21,7 @@ export default function QRScannerPage() {
       try {
         const url = new URL(decoded);
         if (url.origin !== window.location.origin) {
-          setError('QR ini bukan dari RafQR. Pindai ulang, atau ketik kode manual di bawah.');
+          setError('QR ini bukan dari QRData. Pindai ulang, atau ketik kode manual di bawah.');
           return;
         }
         target = url.pathname + url.search;

@@ -25,7 +25,7 @@ export function TopBar({
   children,
   right,
   onLogoClick,
-  title = 'RafQR',
+  title = 'QRData',
 }: {
   children?: React.ReactNode;
   right?: React.ReactNode;
