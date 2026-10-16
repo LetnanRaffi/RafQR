@@ -100,7 +100,13 @@ export default function P2PSender({ files, onAddFiles, onRemoveFile, onCloudFall
 
   useEffect(() => {
     if (status !== 'waiting') return;
-    provider.current?.updateSenderFiles(files.map(({ file }) => file));
+    const client = provider.current;
+    if (!client || client.currentStatus !== 'waiting') return;
+    try {
+      client.updateSenderFiles(files.map(({ file }) => file));
+    } catch (next) {
+      setError((next as Error).message);
+    }
   }, [files, status]);
 
   useEffect(() => {

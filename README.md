@@ -75,7 +75,7 @@ Transfer file dan teks dari PC ke HP via QR Code. Mode Cloud menyimpan file seme
    ADMIN_SECRET=pilih-string-acak-panjang
 
    # Mode P2P (aktifkan setelah uji perangkat)
-   NEXT_PUBLIC_P2P_ENABLED=false
+   NEXT_PUBLIC_P2P_ENABLED=true
    NEXT_PUBLIC_P2P_SIGNALING_URL=https://rafqr-signaling-production.<subdomain>.workers.dev
    NEXT_PUBLIC_P2P_ICE_SERVERS=[{"urls":"stun:stun.l.google.com:19302"}]
    NEXT_PUBLIC_P2P_CHUNK_BYTES=16384
@@ -89,7 +89,7 @@ Mode P2P memakai signaling Worker terpisah; Worker hanya menangani kode sesi dan
 
 Penerima perlu mengetuk tombol simpan untuk setiap file. Chrome dengan File System Access API menulis langsung ke disk; browser lain hanya dapat memakai unduhan Blob untuk file sampai batas `NEXT_PUBLIC_P2P_BLOB_MAX_MB`. Koneksi WebRTC terenkripsi dengan DTLS. Tidak ada resume atau TURN pada konfigurasi awal; jaringan NAT ketat dapat gagal dan pengirim dapat memakai tombol Cloud dengan file yang sudah dipilih.
 
-Sebelum mengaktifkan flag di production, uji transfer 2 GB di Chrome desktop dan Chrome Android fisik, file kosong, beberapa file, putus koneksi, fallback Cloud, serta unduhan Cloud. Build dan tes lokal saja tidak membuktikan kestabilan perangkat fisik.
+Setelah deploy production, uji transfer 2 GB di Chrome desktop dan Chrome Android fisik, file kosong, beberapa file, putus koneksi, fallback Cloud, serta unduhan Cloud. Build dan tes lokal saja tidak membuktikan kestabilan perangkat fisik.
 
 ### Konfigurasi Cloudflare R2
 

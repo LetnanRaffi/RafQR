@@ -151,14 +151,14 @@ export class P2PProvider implements TransferProvider {
       this.sendControl({ type: 'file-ready', fileId });
     } catch (error) {
       const err = asError(error);
-      this.sendControl({ type: 'file-result', fileId, ok: false, error: err.message });
+      this.trySendControl({ type: 'file-result', fileId, ok: false, error: err.message });
       this.fail(err);
       throw err;
     }
   }
 
   cancel(): void {
-    if (this.channel?.readyState === 'open') this.sendControl({ type: 'cancel', reason: 'Transfer dibatalkan.' });
+    this.trySendControl({ type: 'cancel', reason: 'Transfer dibatalkan.' });
     this.teardown(new Error('Transfer dibatalkan.'));
     this.setStatus('idle');
   }
@@ -360,7 +360,7 @@ export class P2PProvider implements TransferProvider {
     } catch (error) {
       await current.sink.abort().catch(() => undefined);
       const err = asError(error);
-      this.sendControl({ type: 'file-result', fileId, ok: false, error: err.message });
+      this.trySendControl({ type: 'file-result', fileId, ok: false, error: err.message });
       this.callbacks.onFileResult?.({ fileId, ok: false, error: err.message });
       this.fail(err);
     }
@@ -460,6 +460,11 @@ export class P2PProvider implements TransferProvider {
   private sendControl(message: ControlMessage): void {
     if (this.channel?.readyState !== 'open') throw new Error('Kanal transfer belum terhubung.');
     this.channel.send(JSON.stringify(message));
+  }
+
+  private trySendControl(message: ControlMessage): void {
+    if (this.channel?.readyState !== 'open') return;
+    try { this.channel.send(JSON.stringify(message)); } catch { /* Local failure still tears down the session. */ }
   }
 
   private armConnectTimeout(): void {
