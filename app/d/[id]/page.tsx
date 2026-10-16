@@ -80,6 +80,10 @@ export default function ReceivePage() {
         return res.json();
       })
       .then((result) => {
+        if (result.data?.textContent === 'WAITING_FOR_UPLOAD') {
+          window.location.replace(`/u/${encodeURIComponent(String(id))}`);
+          return;
+        }
         setSession(result.data);
         setTtl(typeof result.ttl === 'number' ? result.ttl : null);
         if (result.data.locked) setIsLocked(true);
