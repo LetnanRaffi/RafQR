@@ -24,7 +24,7 @@ type Mode = 'send' | 'receive';
 type SendTab = 'files' | 'text';
 type Step = 'input' | 'uploading' | 'success' | 'waiting' | 'p2p';
 type RowStatus = 'queued' | 'uploading' | 'done' | 'error';
-const P2P_ENABLED = process.env.NEXT_PUBLIC_P2P_ENABLED === 'true';
+const P2P_ENABLED = process.env.NEXT_PUBLIC_P2P_ENABLED !== 'false' && Boolean(process.env.NEXT_PUBLIC_P2P_SIGNALING_URL);
 
 interface Row {
   key: string;
