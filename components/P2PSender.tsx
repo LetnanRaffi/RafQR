@@ -31,8 +31,10 @@ function duration(seconds: number | null): string {
   return `${Math.floor(seconds / 60)} mnt ${Math.ceil(seconds % 60)} dtk`;
 }
 
-export default function P2PSender({ files, onAddFiles, onRemoveFile, onCloudFallback, onClose }: {
+export default function P2PSender({ files, text = '', invitation, onAddFiles, onRemoveFile, onCloudFallback, onClose }: {
   files: SenderFile[];
+  text?: string;
+  invitation?: { code: string; token: string };
   onAddFiles: (files: File[]) => void;
   onRemoveFile: (key: string) => void;
   onCloudFallback: () => void;
@@ -82,7 +84,7 @@ export default function P2PSender({ files, onAddFiles, onRemoveFile, onCloudFall
         if (!result.ok) setError(result.error || 'Penerima mendeteksi file korup.');
       },
       onError: (next) => { if (active) setError(next.message); },
-      }).then((next) => { if (active) setSession(next); }).catch((next: Error) => {
+      }, { text, invitation }).then((next) => { if (active) setSession(next); }).catch((next: Error) => {
         if (!active) return;
         setError(next.message || 'Gagal membuat sesi P2P.');
         setStatus('failed');
@@ -150,14 +152,18 @@ export default function P2PSender({ files, onAddFiles, onRemoveFile, onCloudFall
       <header className="stack tight">
         <span className="p2p-eyebrow">QRDATA / TRANSFER LANGSUNG</span>
         <h1 className="big">{labels[status]}.</h1>
-        <p className="lead">File bergerak antarperangkat melalui koneksi WebRTC. Biarkan kedua tab tetap terbuka sampai verifikasi selesai.</p>
+        <p className="lead">File dan teks bergerak antarperangkat melalui koneksi WebRTC. Biarkan kedua tab tetap terbuka sampai transfer selesai.</p>
       </header>
 
-      {session && <section className="card pad stack" aria-label="Tautan penerima">
+      {session && !invitation && <section className="card pad stack" aria-label="Tautan penerima">
         <div className="p2p-sender-code"><span>Kode sesi</span><strong className="mono">p2p:{session.code}</strong></div>
         <div className="linkrow"><span className="u">{url}</span><Copied show={copied} />{!copied && <Btn size="sm" onClick={() => copy(url)}><CopyIcon size={14} /> Salin</Btn>}</div>
         <QrBox value={url} size={212} caption="Pindai untuk menerima" />
       </section>}
+
+      {invitation && <div className="note"><span>Menjawab undangan penerima. Kiriman akan muncul di perangkat yang membuat sesi ini.</span></div>}
+
+      {text.trim() && <section className="card pad stack p2p-preview"><h2 className="sml">Pesan teks</h2><div className="p2p-preview-text"><p>{text}</p></div></section>}
 
       <section className="card pad stack" aria-live="polite">
         <div className="p2p-section-heading"><h2>Status transfer</h2><strong>{overallPercent}%</strong></div>
