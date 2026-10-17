@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import P2PSender, { type SenderFile } from '../../../../components/P2PSender';
+import LivePhotoHint from '../../../../components/LivePhotoHint';
 import { AppShell, Btn, TopBar } from '../../../../components/ui';
 import { formatSize } from '../../../../lib/format';
 import { MAX_FILE_BYTES } from '../../../../lib/session';
@@ -79,6 +80,7 @@ export default function InvitedSenderPage() {
       {token && !cloudUrl && <section className="card pad stack">
         <label className="stack tight"><span className="sml">Pilih file</span><input type="file" multiple onChange={(event) => { addFiles(Array.from(event.target.files || [])); event.target.value = ''; }} disabled={fallback === 'uploading'} /></label>
         {files.length > 0 && <div className="p2p-preview-file-list">{files.map(({ key, file }) => <div className="p2p-preview-file" key={key}><span className="p2p-preview-file-copy"><strong>{file.name}</strong><small>{formatSize(file.size)}</small></span><Btn size="sm" variant="ghost" onClick={() => setFiles((current) => current.filter((item) => item.key !== key))} disabled={fallback === 'uploading'}>Hapus</Btn></div>)}</div>}
+        <LivePhotoHint files={files.map(({ file }) => file)} onAddFiles={addFiles} />
         <label className="stack tight"><span className="sml">Pesan teks (opsional)</span><textarea className="inp" value={text} onChange={(event) => setText(event.target.value)} placeholder="Tulis pesan untuk penerima…" rows={4} disabled={fallback === 'uploading'} /></label>
         {error && <p className="err" role="alert">{error}</p>}
         {fallback === 'uploading' ? <p role="status">Mengirim lewat Cloud… {progress}%</p> : fallback === 'error' ? <Btn block onClick={() => { void sendCloud(); }}>Coba lagi lewat Cloud</Btn> : <Btn block size="lg" onClick={start}>Kirim langsung (P2P)</Btn>}

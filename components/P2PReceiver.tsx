@@ -5,6 +5,7 @@ import { AppShell, Btn, Copied, TopBar } from './ui';
 import { CheckCircleIcon, CopyIcon, DownloadIcon, FileIcon, WarningIcon } from './icons';
 import QrBox from './BrandedQR';
 import { formatSize } from '../lib/format';
+import { findLivePhotoPairs } from '../lib/live-photo';
 import {
   P2PProvider,
   type P2PCallbacks,
@@ -158,6 +159,7 @@ export default function P2PReceiver({ code, onClose }: { code?: string; onClose:
   const overall = files.reduce((max, file) => Math.max(max, file.progress?.overallBytes || 0), 0);
   const overallDone = files.reduce((max, file) => Math.max(max, file.progress?.overallTransferredBytes || 0), 0);
   const isTerminal = status === 'failed' || status === 'expired';
+  const livePhotoPairs = findLivePhotoPairs(preview?.files || [], (file) => file.name);
 
   return (
     <AppShell>
@@ -191,6 +193,7 @@ export default function P2PReceiver({ code, onClose }: { code?: string; onClose:
             <span className="p2p-preview-file-copy"><strong>{file.name}</strong><small>{formatSize(file.size)}{file.type ? ` · ${file.type}` : ''}</small></span>
           </div>)}
           {preview.totalFiles > preview.files.length && <p className="hint">{preview.totalFiles - preview.files.length} file lain akan dikirim.</p>}
+          {livePhotoPairs.length > 0 && <p className="live-photo-hint"><strong>Live Photo:</strong> simpan foto dan video .MOV pasangannya. Di Android/PC, buka .MOV untuk melihat gerak dan suaranya. Jika ada file bernama akhir MP.jpg, itu versi Motion Photo Android.</p>}
         </section>}
 
         {files.length > 0 && (

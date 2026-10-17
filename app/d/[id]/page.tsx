@@ -17,6 +17,8 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { canShareFiles, shareFile } from '../../../lib/download';
 import { streamSaveCloudFile } from '../../../lib/transfer/save-cloud-file';
+import { findLivePhotoPairs } from '../../../lib/live-photo';
+import { androidMotionPhotoName } from '../../../lib/android-motion-photo';
 
 interface SessionFile { fileName: string; fileSize: number; fileType: string; firebaseUrl: string; storageRef?: string; }
 interface FileSession {
@@ -65,6 +67,7 @@ export default function ReceivePage() {
   const [copied, setCopied] = useState(false);
 
   const [isZipping, setIsZipping] = useState(false);
+  const [busyPair, setBusyPair] = useState<string | null>(null);
   const [busyFile, setBusyFile] = useState<string | null>(null);
   const [shareCapable, setShareCapable] = useState(false);
 
@@ -244,6 +247,25 @@ export default function ReceivePage() {
     }
   };
 
+  const downloadLivePhoto = async (photo: SessionFile, video: SessionFile, name: string) => {
+    if (photo.fileSize + video.fileSize > MAX_ZIP_BYTES) {
+      toast('Pasangan ini terlalu besar untuk ZIP. Unduh kedua file satu per satu.', 'error');
+      return;
+    }
+    setBusyPair(name);
+    try {
+      const zip = new JSZip();
+      zip.file(photo.fileName, await fetchBlob(photo.firebaseUrl));
+      zip.file(video.fileName, await fetchBlob(video.firebaseUrl));
+      saveAs(await zip.generateAsync({ type: 'blob', compression: 'STORE' }), `${name}-live-photo.zip`);
+      toast('Foto dan video sudah dipaketkan.', 'success');
+    } catch (err) {
+      toast((err as Error).message || 'Gagal mengunduh pasangan Live Photo.', 'error');
+    } finally {
+      setBusyPair(null);
+    }
+  };
+
   const copyText = async () => {
     const text = draft || decryptedText || session?.textContent;
     if (!text) return;
@@ -348,6 +370,10 @@ export default function ReceivePage() {
 
   /* ── main ─────────────────────────────────────────────────────── */
   const files = session?.files ?? [];
+  const livePhotoPairs = findLivePhotoPairs(files, (file) => file.fileName).map((pair) => ({
+    ...pair,
+    motion: files.find((file) => file.fileName.toLowerCase() === androidMotionPhotoName(pair.photo.fileName).toLowerCase()),
+  }));
   const zipAllowed = (session?.totalSize || 0) <= MAX_ZIP_BYTES;
   const lbFile = lightbox !== null ? files[lightbox] : null;
   const canPreview = (f: SessionFile) => !!previews[keyOf(f)] && !!f.fileType?.startsWith('image/');
@@ -414,6 +440,17 @@ export default function ReceivePage() {
             })}
           </div>
         )}
+
+        {livePhotoPairs.map(({ photo, video, name, motion }) => <section className="card pad stack live-photo-received" key={`${keyOf(photo)}-${keyOf(video)}`}>
+          <div className="stack tight"><h2 className="sml">Live Photo · {name}</h2><p className="hint">Foto dan video geraknya sudah diterima. Di Android/PC, gerak dapat diputar sebagai video .MOV; kedua file tetap disimpan tanpa konversi.</p></div>
+          {previews[keyOf(video)] && <video controls playsInline preload="metadata" src={previews[keyOf(video)]} aria-label={`Gerakan Live Photo ${name}`} />}
+          {motion && <Btn size="sm" onClick={() => { void download(motion); }} disabled={busyFile !== null}>
+              <DownloadIcon size={14} /> {busyFile === motion.fileName ? 'Mengunduh…' : 'Unduh Motion Photo Android'}
+            </Btn>}
+          <Btn size="sm" variant="white" onClick={() => { void downloadLivePhoto(photo, video, name); }} disabled={busyPair !== null || isZipping}>
+            <DownloadIcon size={14} /> {busyPair === name ? 'Menyiapkan ZIP…' : 'Unduh foto + video'}
+          </Btn>
+        </section>)}
 
         {(draft || decryptedText || session?.textContent) && (
           <>

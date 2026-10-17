@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { uploadFileToR2 } from '../../../lib/r2-client';
 import SiteFooter from '../../../components/Footer';
+import LivePhotoHint from '../../../components/LivePhotoHint';
 import { toast } from '../../../components/toast';
 import { formatSize } from '../../../lib/format';
 import { useFilePreviews, fileKey } from '../../../lib/preview';
@@ -204,6 +205,8 @@ export default function MobileUploadPage() {
           aria-label="Pemilih file tambahan"
           onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ''; }}
         />
+
+        {!uploading && <LivePhotoHint files={files} onAddFiles={addFiles} />}
 
         <textarea className="inp" value={text} onChange={(e) => setText(e.target.value)} placeholder="Tambah pesan untuk PC (opsional)…" disabled={uploading} />
 

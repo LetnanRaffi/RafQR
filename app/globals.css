@@ -526,6 +526,12 @@ button.lrow:active { transform: none; }
 .p2p-preview-file-copy strong { overflow-wrap: anywhere; font-size: 13px; }
 .p2p-preview-file-copy small { color: var(--muted); overflow-wrap: anywhere; }
 .p2p-invited-send input[type="file"] { max-width: 100%; font-size: 13px; }
+.live-photo-hint { margin: 0; padding: 11px 13px; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--soft); color: var(--muted); font-size: 13px; line-height: 1.5; }
+.live-photo-hint strong, .live-photo-hint summary { color: var(--ink); font-weight: 650; }
+.live-photo-hint summary { cursor: pointer; }
+.live-photo-hint p { margin: 7px 0 0; }
+.live-photo-create { display: block; margin-top: 9px; max-width: 100%; white-space: normal; text-align: left; }
+.live-photo-received video { display: block; width: 100%; max-height: 360px; border-radius: var(--r-m); background: #111; }
 .p2p-sender { min-width: 0; gap: 18px; padding-bottom: calc(32px + env(safe-area-inset-bottom)); }
 .p2p-sender > header { gap: 8px; }
 .p2p-sender .card { min-width: 0; }

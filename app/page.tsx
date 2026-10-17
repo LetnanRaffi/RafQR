@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CloudProvider } from '../lib/transfer/cloud-provider';
 import P2PSender from '../components/P2PSender';
 import P2PReceiver from '../components/P2PReceiver';
+import LivePhotoHint from '../components/LivePhotoHint';
 import { nanoid } from 'nanoid';
 import QrBox from '../components/BrandedQR';
 import SiteFooter from '../components/Footer';
@@ -472,6 +473,7 @@ export default function HomePage() {
                     )}
                   </>
                 )}
+                {!busy && <LivePhotoHint files={rows.map((row) => row.file)} onAddFiles={addFiles} />}
               </>
             ) : (
               <div className="stack tight">
