@@ -82,6 +82,24 @@ async function main() {
   assert.deepEqual(await senderNext(), { type: "peer-left", role: "receiver" });
   sender.close();
   second.close();
+
+  // The receiver can create the session and join before inviting the sender.
+  const reverse = await fetch(`${base}/sessions`, { method: "POST", headers: { Origin: origin } });
+  assert.equal(reverse.status, 201);
+  const invitation = await reverse.json();
+  const firstReceiver = await connect(invitation.code);
+  const firstReceiverNext = inbox(firstReceiver);
+  firstReceiver.send(JSON.stringify({ type: "join", role: "receiver" }));
+  assert.equal((await firstReceiverNext()).type, "joined");
+  const invitedSender = await connect(invitation.code);
+  const invitedSenderNext = inbox(invitedSender);
+  invitedSender.send(JSON.stringify({ type: "join", role: "sender", token: invitation.senderToken }));
+  assert.equal((await invitedSenderNext()).type, "joined");
+  assert.deepEqual(await firstReceiverNext(), { type: "join", role: "sender" });
+  assert.deepEqual(await firstReceiverNext(), { type: "peer-joined", role: "sender" });
+  assert.deepEqual(await invitedSenderNext(), { type: "peer-joined", role: "receiver" });
+  invitedSender.close();
+  firstReceiver.close();
   console.log("signaling smoke: passed");
 }
 

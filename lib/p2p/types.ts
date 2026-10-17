@@ -33,11 +33,25 @@ export interface P2PSessionInfo {
   expiresAt: number;
 }
 
+export interface P2PPreviewFile {
+  name: string;
+  size: number;
+  type: string;
+  thumbnail?: string;
+}
+
+export interface P2PPreview {
+  files: P2PPreviewFile[];
+  totalFiles: number;
+  text: string;
+}
+
 export interface P2PCallbacks {
   onSession?: (session: P2PSessionInfo) => void;
   onStatus?: (status: P2PStatus) => void;
   onFile?: (file: P2PFileInfo) => void;
   onProgress?: (progress: P2PProgress) => void;
   onFileResult?: (result: P2PFileResult) => void;
+  onPreview?: (preview: P2PPreview) => void;
   onError?: (error: Error) => void;
 }

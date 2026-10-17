@@ -2,11 +2,12 @@ import { getP2PConfig, type P2PConfig } from './config';
 import { hashFile, hex, sha256 } from './hash';
 import { createFileSink, type FileSink } from './sink';
 import { TransferWakeLock } from './wake-lock';
-import type { P2PCallbacks, P2PFileInfo, P2PFileResult, P2PProgress, P2PSessionInfo, P2PStatus } from './types';
+import type { P2PCallbacks, P2PFileInfo, P2PFileResult, P2PPreview, P2PPreviewFile, P2PProgress, P2PSessionInfo, P2PStatus } from './types';
 import type { TransferProvider } from '../transfer/types';
 
 type Role = 'sender' | 'receiver';
 type ControlMessage =
+  | { type: 'preview'; preview: P2PPreview }
   | { type: 'file-start'; file: P2PFileInfo; batchBytes: number }
   | { type: 'file-ready'; fileId: string }
   | { type: 'file-end'; fileId: string }
@@ -31,6 +32,7 @@ const ACK_INTERVAL = 256 * 1024;
 const SEND_WINDOW = 1024 * 1024;
 const CHANNEL_HIGH_WATER = 1024 * 1024;
 const CHANNEL_LOW_WATER = 256 * 1024;
+export const MAX_P2P_TEXT_BYTES = 16 * 1024;
 
 function websocketUrl(base: string, code: string): string {
   const url = new URL(`${base}/sessions/${encodeURIComponent(code)}/ws`);
@@ -54,6 +56,7 @@ export class P2PProvider implements TransferProvider {
   private peer: RTCPeerConnection | null = null;
   private channel: RTCDataChannel | null = null;
   private files: File[] = [];
+  private textContent = '';
   private filesLocked = false;
   private abortController = new AbortController();
   private pendingCandidates: RTCIceCandidateInit[] = [];
@@ -69,6 +72,7 @@ export class P2PProvider implements TransferProvider {
   private sentOverall = 0;
   private acknowledged = 0;
   private expectedFiles = 0;
+  private previewFileCount: number | null = null;
   private batchBytes = 0;
   private progressTimes = new Map<string, number>();
   private closing = false;
@@ -86,26 +90,24 @@ export class P2PProvider implements TransferProvider {
 
   updateSenderFiles(files: File[]): void {
     if (this.role !== 'sender' || this.filesLocked) throw new Error('Daftar file tidak bisa diubah setelah transfer dimulai.');
-    if (!files.length) throw new Error('Pilih minimal satu file.');
+    if (!files.length && !this.textContent) throw new Error('Pilih file atau tulis pesan dulu.');
     this.files = [...files];
   }
 
-  async startSender(files: File[], callbacks: P2PCallbacks = {}): Promise<P2PSessionInfo> {
+  async startSender(files: File[], callbacks: P2PCallbacks = {}, options: { text?: string; invitation?: { code: string; token: string } } = {}): Promise<P2PSessionInfo> {
     if (this.role) throw new Error('Sesi P2P sudah berjalan.');
-    if (!files.length) throw new Error('Pilih minimal satu file.');
+    const text = options.text?.trim() || '';
+    if (!files.length && !text) throw new Error('Pilih file atau tulis pesan dulu.');
+    if (new TextEncoder().encode(text).byteLength > MAX_P2P_TEXT_BYTES) throw new Error('Pesan P2P maksimal 16 KB. Gunakan Cloud untuk pesan lebih panjang.');
     this.role = 'sender';
     this.files = [...files];
+    this.textContent = text;
     this.callbacks = callbacks;
     try {
-      const response = await fetch(`${this.config.signalingUrl}/sessions`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: '{}',
-        signal: this.abortController.signal,
-      });
-      if (!response.ok) throw new Error(`Tidak bisa membuat sesi P2P (${response.status}).`);
-      const body = await response.json() as { code?: string; senderToken?: string; expiresAt?: number };
-      if (!body.code || !body.senderToken || !Number.isFinite(body.expiresAt) || !body.expiresAt) throw new Error('Respons sesi P2P tidak lengkap.');
+      const body = options.invitation
+        ? { code: options.invitation.code, senderToken: options.invitation.token, expiresAt: Date.now() + 600_000 }
+        : await this.createSession();
+      if (!/^[A-Za-z0-9_-]{16}$/.test(body.code) || !body.senderToken) throw new Error('Undangan P2P tidak valid.');
       const info: P2PSessionInfo = {
         code: body.code,
         url: `${window.location.origin}/p/${encodeURIComponent(body.code)}`,
@@ -113,13 +115,49 @@ export class P2PProvider implements TransferProvider {
       };
       this.setStatus('waiting');
       await this.openSignal(body.code, { type: 'join', role: 'sender', token: body.senderToken });
-      this.armExpiry(body.expiresAt);
+      if (!options.invitation) this.armExpiry(body.expiresAt);
       callbacks.onSession?.(info);
       return info;
     } catch (error) {
       this.fail(asError(error));
       throw error;
     }
+  }
+
+  async startReceiver(callbacks: P2PCallbacks = {}): Promise<P2PSessionInfo> {
+    if (this.role) throw new Error('Sesi P2P sudah berjalan.');
+    this.role = 'receiver';
+    this.callbacks = callbacks;
+    this.setStatus('connecting');
+    try {
+      const { code, senderToken, expiresAt } = await this.createSession();
+      await this.openSignal(code, { type: 'join', role: 'receiver' });
+      const info: P2PSessionInfo = {
+        code,
+        url: `${window.location.origin}/p/${encodeURIComponent(code)}/send#token=${encodeURIComponent(senderToken)}`,
+        expiresAt,
+      };
+      this.setStatus('waiting');
+      this.armExpiry(expiresAt);
+      callbacks.onSession?.(info);
+      return info;
+    } catch (error) {
+      this.fail(asError(error));
+      throw error;
+    }
+  }
+
+  private async createSession(): Promise<{ code: string; senderToken: string; expiresAt: number }> {
+    const response = await fetch(`${this.config.signalingUrl}/sessions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+      signal: this.abortController.signal,
+    });
+    if (!response.ok) throw new Error(`Tidak bisa membuat sesi P2P (${response.status}).`);
+    const body = await response.json() as { code?: string; senderToken?: string; expiresAt?: number };
+    if (!body.code || !body.senderToken || !Number.isFinite(body.expiresAt) || !body.expiresAt) throw new Error('Respons sesi P2P tidak lengkap.');
+    return body as { code: string; senderToken: string; expiresAt: number };
   }
 
   async connectReceiver(code: string, callbacks: P2PCallbacks = {}): Promise<void> {
@@ -301,6 +339,12 @@ export class P2PProvider implements TransferProvider {
     }
     const message = JSON.parse(data) as ControlMessage;
     switch (message.type) {
+      case 'preview':
+        if (this.role !== 'receiver' || this.previewFileCount !== null) throw new Error('Pratinjau kiriman tidak valid.');
+        if (!isValidPreview(message.preview)) throw new Error('Pratinjau kiriman tidak valid.');
+        this.previewFileCount = message.preview.totalFiles;
+        this.callbacks.onPreview?.(message.preview);
+        break;
       case 'file-start': this.receiveFileStart(message.file, message.batchBytes); break;
       case 'file-ready': this.resolveWaiter(`ready:${message.fileId}`, undefined); break;
       case 'ack': this.acknowledged = Math.max(this.acknowledged, message.bytes); this.resolveWaiter(`ack:${message.fileId}`, undefined); break;
@@ -310,7 +354,7 @@ export class P2PProvider implements TransferProvider {
         this.resolveWaiter(`result:${message.fileId}`, message);
         break;
       case 'batch-end':
-        if (this.role === 'receiver' && this.receivedFiles === this.expectedFiles) this.finish();
+        if (this.role === 'receiver' && this.previewFileCount !== null && this.receivedFiles === this.previewFileCount) this.finish();
         break;
       case 'cancel': this.fail(new Error(message.reason || 'Transfer dibatalkan oleh perangkat lain.')); break;
     }
@@ -322,7 +366,7 @@ export class P2PProvider implements TransferProvider {
     if (!Number.isSafeInteger(batchBytes) || batchBytes < 0) throw new Error('Ukuran total file tidak valid.');
     if (!Number.isSafeInteger(info.total) || info.total < 1 || !Number.isSafeInteger(info.index) || info.index < 0) throw new Error('Daftar file tidak valid.');
     if (!this.expectedFiles) { this.expectedFiles = info.total; this.batchBytes = batchBytes; }
-    if (info.index !== this.receivedFiles || info.total !== this.expectedFiles) throw new Error('Urutan file tidak cocok.');
+    if (info.index !== this.receivedFiles || info.total !== this.expectedFiles || info.total !== this.previewFileCount) throw new Error('Urutan file tidak cocok.');
     this.pendingFile = { info, sink: null, received: 0, acknowledged: 0, hash: sha256.create(), startedAt: performance.now(), completed: false };
     this.callbacks.onFile?.(info);
   }
@@ -368,9 +412,23 @@ export class P2PProvider implements TransferProvider {
 
   private async sendFiles(): Promise<void> {
     const files = [...this.files];
-    if (!files.length) throw new Error('Tidak ada file untuk dikirim.');
+    if (!files.length && !this.textContent) throw new Error('Tidak ada kiriman untuk dikirim.');
     this.batchBytes = files.reduce((sum, file) => sum + file.size, 0);
     void this.wakeLock.start();
+    const previewFiles: P2PPreviewFile[] = [];
+    let previewBytes = 0;
+    for (const file of files.slice(0, 30)) {
+      const preview: P2PPreviewFile = { name: file.name.slice(0, 180), size: file.size, type: file.type };
+      if (/^image\/(png|jpeg|webp|gif)$/.test(file.type) && file.size <= 5 * 1024 * 1024 && previewBytes < 24_000) {
+        const thumbnail = await createThumbnail(file);
+        if (thumbnail && previewBytes + thumbnail.length < 24_000) {
+          preview.thumbnail = thumbnail;
+          previewBytes += thumbnail.length;
+        }
+      }
+      previewFiles.push(preview);
+    }
+    this.sendControl({ type: 'preview', preview: { files: previewFiles, totalFiles: files.length, text: this.textContent } });
     for (let index = 0; index < files.length; index++) {
       if (this.abortController.signal.aborted) throw new Error('Transfer dibatalkan.');
       const file = files[index];
@@ -516,5 +574,43 @@ export class P2PProvider implements TransferProvider {
     this.peer?.close();
     this.socket?.close();
     void this.wakeLock.stop();
+  }
+}
+
+function isValidPreview(value: unknown): value is P2PPreview {
+  if (!value || typeof value !== 'object') return false;
+  const preview = value as Partial<P2PPreview>;
+  if (!Array.isArray(preview.files) || preview.files.length > 30 ||
+      typeof preview.totalFiles !== 'number' || !Number.isSafeInteger(preview.totalFiles) || preview.totalFiles < preview.files.length || preview.totalFiles > 10_000 ||
+      typeof preview.text !== 'string' || new TextEncoder().encode(preview.text).byteLength > MAX_P2P_TEXT_BYTES ||
+      (preview.totalFiles === 0 && !preview.text.trim())) {
+    return false;
+  }
+  return preview.files.every((file) => file && typeof file.name === 'string' && file.name.length <= 180 &&
+    Number.isSafeInteger(file.size) && file.size >= 0 && typeof file.type === 'string' && file.type.length <= 128 &&
+    (file.thumbnail === undefined || (typeof file.thumbnail === 'string' && file.thumbnail.length <= 8192 && file.thumbnail.startsWith('data:image/jpeg;base64,'))));
+}
+
+async function createThumbnail(file: File): Promise<string | undefined> {
+  if (typeof createImageBitmap !== 'function') return undefined;
+  try {
+    const bitmap = await createImageBitmap(file);
+    try {
+      const scale = Math.min(1, 144 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext('2d');
+      if (!context) return undefined;
+      context.fillStyle = '#fff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const data = canvas.toDataURL('image/jpeg', 0.55);
+      return data.length <= 8192 ? data : undefined;
+    } finally {
+      bitmap.close();
+    }
+  } catch {
+    return undefined;
   }
 }

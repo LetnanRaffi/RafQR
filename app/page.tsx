@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CloudProvider } from '../lib/transfer/cloud-provider';
 import P2PSender from '../components/P2PSender';
+import P2PReceiver from '../components/P2PReceiver';
 import { nanoid } from 'nanoid';
 import QrBox from '../components/BrandedQR';
 import SiteFooter from '../components/Footer';
@@ -22,7 +23,7 @@ import { formatLimit } from '../lib/limits';
 
 type Mode = 'send' | 'receive';
 type SendTab = 'files' | 'text';
-type Step = 'input' | 'uploading' | 'success' | 'waiting' | 'p2p';
+type Step = 'input' | 'uploading' | 'success' | 'waiting' | 'p2p' | 'p2p-receive';
 type RowStatus = 'queued' | 'uploading' | 'done' | 'error';
 const P2P_ENABLED = process.env.NEXT_PUBLIC_P2P_ENABLED !== 'false' && Boolean(process.env.NEXT_PUBLIC_P2P_SIGNALING_URL);
 
@@ -40,6 +41,7 @@ export default function HomePage() {
   const [mode, setMode] = useState<Mode>('send');
   const [sendTab, setSendTab] = useState<SendTab>('files');
   const [transferMode, setTransferMode] = useState<'p2p' | 'cloud'>('cloud');
+  const [receiveMode, setReceiveMode] = useState<'p2p' | 'cloud'>('cloud');
   const [step, setStep] = useState<Step>('input');
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -214,6 +216,7 @@ export default function HomePage() {
     setStep('input');
     setRows([]);
     setTransferMode('cloud');
+    setReceiveMode('cloud');
     setTextContent('');
     setError(null);
     setUniqueId(null);
@@ -237,6 +240,8 @@ export default function HomePage() {
         const url = new URL(value);
         if (url.origin === window.location.origin && (/^\/(d|u)\/[a-zA-Z0-9_-]{1,64}\/?$/.test(url.pathname) || /^\/p\/[A-Za-z0-9_-]{16}\/?$/.test(url.pathname))) {
           path = url.pathname;
+        } else if (url.origin === window.location.origin && /^\/p\/[A-Za-z0-9_-]{16}\/send\/?$/.test(url.pathname) && /^#token=[A-Za-z0-9_-]{40,60}$/.test(url.hash)) {
+          path = url.pathname + url.hash;
         }
       } catch { /* invalid input is explained below */ }
     }
@@ -299,10 +304,11 @@ export default function HomePage() {
   };
 
   const handleUpload = async () => {
-    if (sendTab === 'files' && transferMode === 'p2p' && P2P_ENABLED) {
-      if (rows.length === 0) { setError('Pilih file dulu.'); return; }
+    if (transferMode === 'p2p' && P2P_ENABLED) {
+      if (rows.length === 0 && !textContent.trim()) { setError('Pilih file atau tulis pesan dulu.'); return; }
       const oversized = rows.find((row) => row.file.size > MAX_FILE_BYTES);
       if (oversized) { setError(`File ${oversized.file.name} melebihi batas ${formatLimit(MAX_FILE_BYTES)}.`); return; }
+      if (new TextEncoder().encode(textContent.trim()).byteLength > 16 * 1024) { setError('Pesan P2P maksimal 16 KB. Gunakan Cloud untuk pesan lebih panjang.'); return; }
       setError(null);
       setStep('p2p');
       return;
@@ -318,6 +324,7 @@ export default function HomePage() {
 
   const startReceiving = async () => {
     setError(null);
+    if (receiveMode === 'p2p' && P2P_ENABLED) { setStep('p2p-receive'); return; }
     const id = customId.trim();
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(id)) { setError('ID penerimaan harus 1–64 huruf, angka, tanda hubung, atau garis bawah.'); return; }
     const res = await fetch('/api/session', {
@@ -404,10 +411,10 @@ export default function HomePage() {
               ]}
             />
 
-            {sendTab === 'files' && P2P_ENABLED && <div className="p2p-mode-choice">
+            {P2P_ENABLED && <div className="p2p-mode-choice">
               <Toggle
                 label="Transfer langsung (P2P)"
-                hint={transferMode === 'p2p' ? 'File dikirim langsung setelah penerima terhubung.' : 'Nonaktif: file disimpan di Cloud selama 30 menit.'}
+                hint={transferMode === 'p2p' ? 'File dan teks dikirim langsung setelah penerima terhubung.' : 'Nonaktif: kiriman disimpan di Cloud selama 30 menit.'}
                 checked={transferMode === 'p2p'}
                 onChange={() => {
                   const next = transferMode === 'p2p' ? 'cloud' : 'p2p';
@@ -521,7 +528,7 @@ export default function HomePage() {
               ) : (
                 <>
                   <div className="sum">
-                    <span>{rows.length > 0 ? `${rows.length} file · ${formatSize(totalSize)}` : (textContent.trim() ? '1 pesan teks' : 'Belum ada file')}</span>
+                    <span>{rows.length > 0 ? `${rows.length} file · ${formatSize(totalSize)}${textContent.trim() ? ' + pesan teks' : ''}` : (textContent.trim() ? '1 pesan teks' : 'Belum ada file')}</span>
                     <span className="muted">{rows.length > 0 || textContent.trim() ? 'Ctrl/⌘ + Enter' : 'kirim instan'}</span>
                   </div>
                   <Btn block size="lg" onClick={handleUpload} disabled={rows.length === 0 && !textContent.trim()}>
@@ -561,7 +568,7 @@ export default function HomePage() {
             onChange={(e) => { addFiles(Array.from(e.target.files || [])); e.target.value = ''; }}
           />
 
-          {(sendTab === 'text' || transferMode === 'cloud') && <Disclosure open={optionsOpen} onToggle={() => setOptionsOpen(!optionsOpen)}>
+          {transferMode === 'cloud' && <Disclosure open={optionsOpen} onToggle={() => setOptionsOpen(!optionsOpen)}>
             <div className="stack tight" style={{ paddingTop: 8 }}>
               <Toggle
                 label="Enkripsi E2EE"
@@ -628,8 +635,8 @@ export default function HomePage() {
           </Disclosure>}
 
           <p className="hint" style={{ textAlign: 'center' }}>
-            {sendTab === 'files' && transferMode === 'p2p' && P2P_ENABLED
-              ? 'Sesi menunggu penerima hingga 10 menit. File tidak diunggah ke Cloud.'
+            {transferMode === 'p2p' && P2P_ENABLED
+              ? 'Sesi menunggu penerima hingga 10 menit. File dan teks tidak diunggah ke Cloud.'
               : 'Sesi tersedia 30 menit. File Cloud mengikuti kebijakan pembersihan R2.'}
           </p>
 
@@ -661,7 +668,7 @@ export default function HomePage() {
       <div className="page narrow stack dock-page">
         <div className="stack" style={{ gap: 7 }}>
           <h1 className="big">Terima di<br />perangkat ini.</h1>
-          <p className="lead">Aktifkan penerimaan, lalu kirim ID ini ke pengirim. File-nya muncul sendiri.</p>
+          <p className="lead">Aktifkan penerimaan, lalu bagikan tautan ke pengirim.</p>
         </div>
 
         <div className="card pad stack">
@@ -674,7 +681,14 @@ export default function HomePage() {
             ]}
           />
 
-          <div className="card flat" style={{ background: 'var(--soft)', display: 'grid', justifyItems: 'center', gap: 10, padding: 22 }}>
+          {P2P_ENABLED && <Toggle
+            label="Terima langsung (P2P)"
+            hint={receiveMode === 'p2p' ? 'Buat sesi langsung untuk file dan teks. Kedua perangkat perlu tetap online.' : 'Nonaktif: terima lewat Cloud dengan ID penerimaan.'}
+            checked={receiveMode === 'p2p'}
+            onChange={() => { setReceiveMode(receiveMode === 'p2p' ? 'cloud' : 'p2p'); setError(null); }}
+          />}
+
+          {receiveMode === 'cloud' ? <><div className="card flat" style={{ background: 'var(--soft)', display: 'grid', justifyItems: 'center', gap: 10, padding: 22 }}>
             <span className="tiny muted" style={{ fontWeight: 600 }}>ID PENERIMAAN</span>
             <span className="receive-id mono num">{customId}</span>
             <div className="row" style={{ gap: 8 }}>
@@ -710,13 +724,14 @@ export default function HomePage() {
               />
             )}
           </div>
+          </> : <p className="hint">Setelah sesi dibuat, QR dan tautan undangan akan muncul. Pengirim bisa memilih file, menulis pesan, atau keduanya.</p>}
           {error && <p className="err" role="alert">{error}</p>}
         </div>
 
-        <div className="info"><BoltIcon size={15} /> Halaman ini boleh ditutup — incoming tetap masuk, cukup buka lagi.</div>
+        {receiveMode === 'cloud' ? <div className="info"><BoltIcon size={15} /> Halaman ini boleh ditutup — incoming tetap masuk, cukup buka lagi.</div> : <div className="info"><BoltIcon size={15} /> Biarkan halaman ini terbuka selama menunggu dan menerima kiriman langsung.</div>}
       </div>
       <div className="dock">
-        <Btn block size="lg" onClick={startReceiving}>Aktifkan penerimaan</Btn>
+        <Btn block size="lg" onClick={startReceiving}>{receiveMode === 'p2p' ? 'Buat sesi P2P' : 'Aktifkan penerimaan'}</Btn>
       </div>
     </>
   );
@@ -821,11 +836,13 @@ export default function HomePage() {
 
   if (step === 'p2p') return <P2PSender
     files={rows.map(({ key, file }) => ({ key, file }))}
+    text={textContent}
     onAddFiles={addFiles}
     onRemoveFile={removeRow}
     onCloudFallback={() => { setTransferMode('cloud'); void handleCloudUpload(); }}
     onClose={resetAll}
   />;
+  if (step === 'p2p-receive') return <P2PReceiver onClose={resetAll} />;
 
   return (
     <AppShell>
