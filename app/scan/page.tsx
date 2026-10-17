@@ -24,7 +24,7 @@ export default function QRScannerPage() {
           setError('QR ini bukan dari QRData. Pindai ulang, atau ketik kode manual di bawah.');
           return;
         }
-        target = url.pathname + url.search;
+        target = url.pathname + url.search + url.hash;
       } catch {
         setError('QR bukan tautan yang valid. Pindai ulang atau ketik kode manual.');
         return;
